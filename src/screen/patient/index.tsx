@@ -1,399 +1,275 @@
-// "use client";
+import React from "react";
+import { 
+  Calendar, 
+  FileText, 
+  User, 
+  Leaf, 
+  Pill, 
+  Phone, 
+  MapPin, 
+  CheckCircle, 
+  AlertCircle,
+  Clock,
+  Heart
+} from "lucide-react";
 
-// import { useState } from "react";
-// import { toast } from "sonner";
-// import { Button } from "@/components/ui/button";
-// import { Card, CardContent } from "@/components/ui/card";
-// import { Input } from "@/components/ui/input";
-// import { Label } from "@/components/ui/label";
-// import { Badge } from "@/components/ui/badge";
-// import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-// import { useApp } from "@/lib/app-store";
-// import { formatNaira, specialties } from "@/lib/mock-data";
-// import { CalendarDays, Leaf, Pill, LogOut } from "lucide-react";
-
-// export default function PatientDashboard() {
-//   const { user, signIn, signOut, appointments, orders, patients } = useApp();
-//   const [email, setEmail] = useState("");
-//   const [name, setName] = useState("");
-
-//   if (!user) {
-//     return (
-//       <div className="mx-auto max-w-md px-4 py-20">
-//         <Card>
-//           <CardContent className="p-6">
-//             <h1 className="font-display text-2xl font-semibold">Sign in</h1>
-//             <p className="mt-1 text-sm text-muted-foreground">
-//               Access your care dashboard. Demo — no password required.
-//             </p>
-//             <div className="mt-6 grid gap-3">
-//               <div>
-//                 <Label htmlFor="n">Name</Label>
-//                 <Input id="n" value={name} onChange={(e) => setName(e.target.value)} placeholder="Adaeze Okafor" />
-//               </div>
-//               <div>
-//                 <Label htmlFor="e">Email</Label>
-//                 <Input id="e" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
-//               </div>
-//               <Button
-//                 onClick={() => {
-//                   if (!name.trim() || !email.trim()) {
-//                     toast.error("Please enter name and email.");
-//                     return;
-//                   }
-//                   signIn({ name: name.trim(), email: email.trim(), role: "patient" });
-//                   toast.success(`Welcome, ${name.split(" ")[0]}!`);
-//                 }}
-//               >
-//                 Continue
-//               </Button>
-//             </div>
-//           </CardContent>
-//         </Card>
-//       </div>
-//     );
-//   }
-
-//   const mine = appointments.filter((a) => a.patient.toLowerCase() === user.name.toLowerCase());
-//   const myOrders = orders.filter((o) => o.customer.toLowerCase() === user.name.toLowerCase());
-//   const record = patients.find((p) => p.name.toLowerCase() === user.name.toLowerCase());
-
-//   return (
-//     <div className="mx-auto max-w-6xl px-4 py-14">
-//       <div className="flex flex-wrap items-end justify-between gap-4">
-//         <div>
-//           <div className="text-xs font-medium uppercase tracking-widest text-primary">Patient Dashboard</div>
-//           <h1 className="mt-1 font-display text-4xl font-semibold">Welcome, {user.name.split(" ")[0]}</h1>
-//           <p className="mt-1 text-sm text-muted-foreground">{user.email}</p>
-//         </div>
-//         <Button variant="outline" onClick={signOut}>
-//           <LogOut className="mr-2 h-4 w-4" /> Sign out
-//         </Button>
-//       </div>
-
-//       <Tabs defaultValue="appointments" className="mt-8">
-//         <TabsList>
-//           <TabsTrigger value="appointments">
-//             <CalendarDays className="mr-2 h-4 w-4" />Appointments
-//           </TabsTrigger>
-//           <TabsTrigger value="prescriptions">
-//             <Pill className="mr-2 h-4 w-4" />Prescriptions
-//           </TabsTrigger>
-//           <TabsTrigger value="notes">
-//             <Leaf className="mr-2 h-4 w-4" />Medical notes
-//           </TabsTrigger>
-//           <TabsTrigger value="orders">Orders</TabsTrigger>
-//         </TabsList>
-
-//         <TabsContent value="appointments">
-//           {mine.length === 0 ? (
-//             <Empty text="No appointments yet. Book your first consultation." />
-//           ) : (
-//             <div className="grid gap-3">
-//               {mine.map((a) => (
-//                 <Card key={a.id}>
-//                   <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
-//                     <div>
-//                       <div className="font-semibold">
-//                         {specialties.find((s) => s.slug === a.specialty)?.name}
-//                       </div>
-//                       <div className="text-sm text-muted-foreground">
-//                         {a.date} · {a.time} · {a.type}
-//                       </div>
-//                       <p className="mt-1 max-w-xl text-sm">{a.symptoms}</p>
-//                     </div>
-//                     <StatusBadge status={a.status} />
-//                   </CardContent>
-//                 </Card>
-//               ))}
-//             </div>
-//           )}
-//         </TabsContent>
-
-//         <TabsContent value="prescriptions">
-//           {record?.prescriptions.length ? (
-//             <div className="grid gap-3">
-//               {record.prescriptions.map((r, i) => (
-//                 <Card key={i}>
-//                   <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
-//                     <div>
-//                       <div className="font-semibold">{r.product}</div>
-//                       <div className="text-sm text-muted-foreground">{r.dosage}</div>
-//                     </div>
-//                     <div className="text-sm text-muted-foreground">Issued {r.date}</div>
-//                   </CardContent>
-//                 </Card>
-//               ))}
-//             </div>
-//           ) : (
-//             <Empty text="No prescriptions on file yet." />
-//           )}
-//         </TabsContent>
-
-//         <TabsContent value="notes">
-//           {record?.history.length ? (
-//             <ol className="relative ml-3 space-y-6 border-l border-border pl-6">
-//               {record.history.map((h, i) => (
-//                 <li key={i} className="relative">
-//                   <span className="absolute -left-[31px] top-1 grid h-4 w-4 place-items-center rounded-full bg-primary" />
-//                   <div className="text-xs uppercase tracking-widest text-muted-foreground">
-//                     {h.date} · {h.author}
-//                   </div>
-//                   <p className="mt-1">{h.note}</p>
-//                 </li>
-//               ))}
-//             </ol>
-//           ) : (
-//             <Empty text="No medical notes have been recorded yet." />
-//           )}
-//         </TabsContent>
-
-//         <TabsContent value="orders">
-//           {myOrders.length === 0 ? (
-//             <Empty text="You haven't placed any orders yet." />
-//           ) : (
-//             <div className="grid gap-3">
-//               {myOrders.map((o) => (
-//                 <Card key={o.id}>
-//                   <CardContent className="flex flex-wrap items-center justify-between gap-3 p-5">
-//                     <div>
-//                       <div className="font-semibold">{o.id}</div>
-//                       <div className="text-sm text-muted-foreground">{o.items}</div>
-//                       <div className="text-xs text-muted-foreground">{o.date}</div>
-//                     </div>
-//                     <div className="flex items-center gap-3">
-//                       <div className="font-semibold">{formatNaira(o.total)}</div>
-//                       <Badge variant="secondary">{o.status}</Badge>
-//                     </div>
-//                   </CardContent>
-//                 </Card>
-//               ))}
-//             </div>
-//           )}
-//         </TabsContent>
-//       </Tabs>
-//     </div>
-//   );
-// }
-
-// function Empty({ text }: { text: string }) {
-//   return (
-//     <Card className="mt-4">
-//       <CardContent className="p-10 text-center text-muted-foreground">{text}</CardContent>
-//     </Card>
-//   );
-// }
-
-// function StatusBadge({ status }: { status: string }) {
-//   const map: Record<string, string> = {
-//     Pending: "bg-accent text-accent-foreground",
-//     Approved: "bg-primary text-primary-foreground",
-//     Completed: "bg-secondary text-secondary-foreground",
-//     Cancelled: "bg-destructive text-destructive-foreground",
-//   };
-//   return (
-//     <span className={`rounded-full px-3 py-1 text-xs font-semibold ${map[status] ?? ""}`}>
-//       {status}
-//     </span>
-//   );
-// }
-
-"use client";
-
-import { useState } from "react";
-import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useApp } from "@/lib/app-store";
-import { formatNaira, specialties } from "@/lib/mock-data";
-import { CalendarDays, Leaf, Pill, LogOut } from "lucide-react";
-
-export default function PatientDashboard() {
-  const { user, signIn, signOut, appointments, orders, patients } = useApp();
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-
-  if (!user) {
-    return (
-      <div className="mx-auto max-w-md px-4 py-20">
-        <Card>
-          <CardContent className="p-6">
-            <h1 className="font-display text-2xl font-semibold">Sign in</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Access your care dashboard. Demo — no password required.
-            </p>
-            <div className="mt-6 grid gap-3">
-              <div>
-                <Label htmlFor="n">Name</Label>
-                <Input id="n" value={name} onChange={(e) => setName(e.target.value)} placeholder="Adaeze Okafor" />
-              </div>
-              <div>
-                <Label htmlFor="e">Email</Label>
-                <Input id="e" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" />
-              </div>
-              <Button
-                onClick={() => {
-                  if (!name.trim() || !email.trim()) {
-                    toast.error("Please enter name and email.");
-                    return;
-                  }
-                  signIn({ name: name.trim(), email: email.trim(), role: "patient" });
-                  toast.success(`Welcome, ${name.split(" ")[0]}!`);
-                }}
-              >
-                Continue
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const mine = appointments.filter((a) => a.patient.toLowerCase() === user.name.toLowerCase());
-  const myOrders = orders.filter((o) => o.customer.toLowerCase() === user.name.toLowerCase());
-  const record = patients.find((p) => p.name.toLowerCase() === user.name.toLowerCase());
-
-  return (
-    <div className="mx-auto max-w-6xl px-4 py-14">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div className="text-xs font-medium uppercase tracking-widest text-primary">Patient Dashboard</div>
-          <h1 className="mt-1 font-display text-4xl font-semibold">Welcome, {user.name.split(" ")[0]}</h1>
-          <p className="mt-1 text-sm text-muted-foreground">{user.email}</p>
-        </div>
-        <Button variant="outline" onClick={signOut}>
-          <LogOut className="mr-2 h-4 w-4" /> Sign out
-        </Button>
-      </div>
-
-      <Tabs defaultValue="appointments" className="mt-8 flex flex-col">
-        <TabsList>
-          <TabsTrigger value="appointments">
-            <CalendarDays className="mr-2 h-4 w-4" />Appointments
-          </TabsTrigger>
-          <TabsTrigger value="prescriptions">
-            <Pill className="mr-2 h-4 w-4" />Prescriptions
-          </TabsTrigger>
-          <TabsTrigger value="notes">
-            <Leaf className="mr-2 h-4 w-4" />Medical notes
-          </TabsTrigger>
-          <TabsTrigger value="orders">Orders</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="appointments">
-          {mine.length === 0 ? (
-            <Empty text="No appointments yet. Book your first consultation." />
-          ) : (
-            <div className="grid gap-3">
-              {mine.map((a) => (
-                <Card key={a.id}>
-                  <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
-                    <div>
-                      <div className="font-semibold">
-                        {specialties.find((s) => s.slug === a.specialty)?.name}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {a.date} · {a.time} · {a.type}
-                      </div>
-                      <p className="mt-1 max-w-xl text-sm">{a.symptoms}</p>
-                    </div>
-                    <StatusBadge status={a.status} />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-
-        <TabsContent value="prescriptions">
-          {record?.prescriptions.length ? (
-            <div className="grid gap-3">
-              {record.prescriptions.map((r, i) => (
-                <Card key={i}>
-                  <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
-                    <div>
-                      <div className="font-semibold">{r.product}</div>
-                      <div className="text-sm text-muted-foreground">{r.dosage}</div>
-                    </div>
-                    <div className="text-sm text-muted-foreground">Issued {r.date}</div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <Empty text="No prescriptions on file yet." />
-          )}
-        </TabsContent>
-
-        <TabsContent value="notes">
-          {record?.history.length ? (
-            <ol className="relative ml-3 space-y-6 border-l border-border pl-6">
-              {record.history.map((h, i) => (
-                <li key={i} className="relative">
-                  <span className="absolute -left-7.75 top-1 grid h-4 w-4 place-items-center rounded-full bg-primary" />
-                  <div className="text-xs uppercase tracking-widest text-muted-foreground">
-                    {h.date} · {h.author}
-                  </div>
-                  <p className="mt-1">{h.note}</p>
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <Empty text="No medical notes have been recorded yet." />
-          )}
-        </TabsContent>
-
-        <TabsContent value="orders">
-          {myOrders.length === 0 ? (
-            <Empty text="You haven't placed any orders yet." />
-          ) : (
-            <div className="grid gap-3">
-              {myOrders.map((o) => (
-                <Card key={o.id}>
-                  <CardContent className="flex flex-wrap items-center justify-between gap-3 p-5">
-                    <div>
-                      <div className="font-semibold">{o.id}</div>
-                      <div className="text-sm text-muted-foreground">{o.items}</div>
-                      <div className="text-xs text-muted-foreground">{o.date}</div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="font-semibold">{formatNaira(o.total)}</div>
-                      <Badge variant="secondary">{o.status}</Badge>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-}
-
-function Empty({ text }: { text: string }) {
-  return (
-    <Card className="mt-4">
-      <CardContent className="p-10 text-center text-muted-foreground">{text}</CardContent>
-    </Card>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, string> = {
-    Pending: "bg-accent text-accent-foreground",
-    Approved: "bg-primary text-primary-foreground",
-    Completed: "bg-secondary text-secondary-foreground",
-    Cancelled: "bg-destructive text-destructive-foreground",
+// Types matching your exact MongoDB API response
+interface HistoryEntry {
+  _id: string;
+  date: string;
+  note: string;
+  author: {
+    _id: string;
+    fullName: string;
+    role: string;
   };
+}
+
+interface PrescriptionEntry {
+  _id: string;
+  date: string;
+  product: string;
+  dosage: string;
+}
+
+interface PatientCardData {
+  _id: string;
+  patient: {
+    _id: string;
+    fullName: string;
+    email: string;
+    phoneNumber: string;
+  };
+  age: number;
+  maritalStatus: string;
+  nextOfKinName: string;
+  nextOfKinPhone: string;
+  stateOfOrigin: string;
+  specialty: string;
+  isPaid: boolean;
+  paymentReference: string;
+  cardFee: number;
+  history: HistoryEntry[];
+  prescriptions: PrescriptionEntry[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Sample API payload passed to component or fetched via Axios
+const sampleCardResponse: PatientCardData = {
+  _id: "6a60e167d67256bf168fdec5",
+  patient: {
+    _id: "6a5a48da5bd16ad199681ade",
+    fullName: "Egbeleke sodiq",
+    email: "egbelekesodiq@gmail.com",
+    phoneNumber: "07063422983"
+  },
+  age: 32,
+  maritalStatus: "single",
+  nextOfKinName: "Egbeleke Nofisat",
+  nextOfKinPhone: "+2348012345678",
+  stateOfOrigin: "Oyo",
+  specialty: "bone-setting",
+  isPaid: true,
+  paymentReference: "vmrnchd7a6",
+  cardFee: 10000,
+  history: [
+    {
+      _id: "6a60e96eb6a7196f36314eae",
+      date: "2026-07-22T16:01:50.592Z",
+      note: "Updated note: Patient's EKG returned normal results.",
+      author: {
+        _id: "6a60e3c1d67256bf168fdec6",
+        fullName: "Egbeleke Taiwo",
+        role: "admin"
+      }
+    }
+  ],
+  prescriptions: [
+    {
+      _id: "6a60e9d4b6a7196f36314eb0",
+      date: "2026-07-22T16:03:32.834Z",
+      product: "Harmo capsule",
+      dosage: "1 capsule 3 times daily for 7 days"
+    }
+  ],
+  createdAt: "2026-07-22T15:27:35.691Z",
+  updatedAt: "2026-07-24T15:30:03.453Z"
+};
+
+export default function PatientDashboard({ cardData = sampleCardResponse }: { cardData?: PatientCardData }) {
+  const { patient, history, prescriptions } = cardData;
+
+  const formatDate = (isoString: string) => {
+    return new Date(isoString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  };
+
   return (
-    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${map[status] ?? ""}`}>
-      {status}
-    </span>
+    <div className="min-h-screen bg-slate-50 text-slate-800 p-4 md:p-8">
+      {/* Top Header */}
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-xl border-2 border-emerald-500 capitalize">
+            {patient.fullName.split(" ").map(n => n[0]).join("")}
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 capitalize">{patient.fullName}</h1>
+            <p className="text-sm text-slate-500 flex items-center gap-2 mt-1">
+              <span>Card ID: <strong className="font-mono text-slate-700">{cardData._id.slice(-8).toUpperCase()}</strong></span>
+              •
+              <span className="capitalize">{patient.email}</span>
+            </p>
+          </div>
+        </div>
+
+        <button className="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2.5 rounded-xl font-medium transition shadow-sm flex items-center gap-2 self-start md:self-auto">
+          <Calendar className="w-4 h-4" /> Book Appointment
+        </button>
+      </header>
+
+      {/* Main Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        {/* Left 2 Columns: History, Prescriptions & Appointments */}
+        <div className="lg:col-span-2 space-y-8">
+
+          {/* Prescriptions Section */}
+          <section className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+            <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+              <Pill className="w-5 h-5 text-emerald-700" /> Active Prescriptions
+            </h2>
+
+            {prescriptions && prescriptions.length > 0 ? (
+              <div className="space-y-3">
+                {prescriptions.map((p) => (
+                  <div key={p._id} className="p-4 rounded-xl border border-emerald-100 bg-emerald-50/50 flex flex-col md:flex-row justify-between md:items-center gap-2">
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-base">{p.product}</h3>
+                      <p className="text-sm text-slate-600 mt-1">Dosage: <span className="font-medium text-slate-800">{p.dosage}</span></p>
+                    </div>
+                    <span className="text-xs text-slate-400 font-mono self-start md:self-auto">
+                      {formatDate(p.date)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-400 py-4 text-center">No active prescriptions assigned.</p>
+            )}
+          </section>
+
+          {/* Medical History Section */}
+          <section className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+            <h2 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+              <FileText className="w-5 h-5 text-emerald-700" /> Medical History Notes
+            </h2>
+
+            {history && history.length > 0 ? (
+              <div className="space-y-4">
+                {history.map((h) => (
+                  <div key={h._id} className="p-4 rounded-xl border border-slate-100 bg-slate-50 space-y-2">
+                    <div className="flex justify-between items-center text-xs text-slate-500">
+                      <span className="font-semibold text-slate-700">Author: {h.author.fullName} ({h.author.role})</span>
+                      <span className="font-mono">{formatDate(h.date)}</span>
+                    </div>
+                    <p className="text-sm text-slate-800 leading-relaxed">{h.note}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-400 py-4 text-center">No medical history entries recorded yet.</p>
+            )}
+          </section>
+
+          {/* Booked Appointments Quick Banner */}
+          <section className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <Clock className="w-5 h-5 text-emerald-700" /> Booked Consultations
+              </h2>
+            </div>
+            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-center">
+              <p className="text-sm text-slate-600">Specialty Registered: <strong className="capitalize text-emerald-800">{cardData.specialty}</strong></p>
+              <p className="text-xs text-slate-400 mt-1">Click &rdquo;Book Appointment&quot; above to schedule your next session.</p>
+            </div>
+          </section>
+
+        </div>
+
+        {/* Right Column: Digital Patient Card */}
+        <div className="space-y-8">
+          
+          {/* Digital Patient Card Widget */}
+          <section className="bg-gradient-to-br from-emerald-900 to-emerald-800 text-white p-6 rounded-2xl shadow-lg relative overflow-hidden">
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <p className="text-xs uppercase tracking-widest text-emerald-200 font-semibold">Hospital Digital Card</p>
+                <h3 className="text-lg font-bold mt-1">Gbemileke Tradomedical</h3>
+              </div>
+              <Leaf className="w-6 h-6 text-emerald-300" />
+            </div>
+
+            <div className="space-y-3 mb-6">
+              <div>
+                <p className="text-xs text-emerald-200">Patient Name</p>
+                <p className="text-lg font-bold capitalize">{patient.fullName}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <p className="text-emerald-200">Phone</p>
+                  <p className="font-medium">{patient.phoneNumber}</p>
+                </div>
+                <div>
+                  <p className="text-emerald-200">Age / Status</p>
+                  <p className="font-medium capitalize">{cardData.age} yrs • {cardData.maritalStatus}</p>
+                </div>
+                <div>
+                  <p className="text-emerald-200">Specialty</p>
+                  <p className="font-medium capitalize">{cardData.specialty}</p>
+                </div>
+                <div>
+                  <p className="text-emerald-200">State of Origin</p>
+                  <p className="font-medium">{cardData.stateOfOrigin}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-emerald-700/50 flex justify-between items-center text-xs">
+              <span className="flex items-center gap-1 text-emerald-200">
+                Fee: ₦{cardData.cardFee.toLocaleString()}
+              </span>
+              <span className={`px-2.5 py-0.5 rounded-full font-bold flex items-center gap-1 ${cardData.isPaid ? "bg-emerald-500 text-white" : "bg-amber-500 text-white"}`}>
+                {cardData.isPaid ? <CheckCircle className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                {cardData.isPaid ? "Paid" : "Pending"}
+              </span>
+            </div>
+          </section>
+
+          {/* Emergency & Next of Kin Card */}
+          <section className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <User className="w-4 h-4 text-emerald-700" /> Next of Kin Details
+            </h3>
+            
+            <div className="text-sm space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-100">
+              <p className="text-slate-500">Name: <strong className="text-slate-800">{cardData.nextOfKinName}</strong></p>
+              <p className="text-slate-500 flex items-center gap-2">
+                <Phone className="w-3.5 h-3.5 text-slate-400" />
+                <span className="text-slate-800 font-mono">{cardData.nextOfKinPhone}</span>
+              </p>
+            </div>
+          </section>
+
+        </div>
+
+      </div>
+    </div>
   );
 }

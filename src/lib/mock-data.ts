@@ -5,7 +5,8 @@ export type SpecialtySlug =
   | "bone-setting"
   | "infertility"
   | "labor-and-delivery"
-  | "infection-treatment";
+  | "infection-treatment"
+  | "male-fertility-care";
 
 export interface Specialty {
   slug: SpecialtySlug;
@@ -124,6 +125,21 @@ export const specialties: Specialty[] = [
   ],
   icon: "🦠",
 },
+{
+  slug: "male-fertility-care",
+  name: "Male Fertility & Vitality",
+  category: "Specialized Medicine",
+  tagline: "Herbal and traditional support for male reproductive health",
+  description:
+    "Traditional and holistic care for low sperm count and reproductive weakness, using targeted herbal formulations and lifestyle guidance alongside clinical awareness to enhance sperm quality, energy, and overall vitality.",
+  approach: [
+    "Comprehensive assessment of symptoms and lifestyle factors",
+    "Herbal remedies tailored to boost sperm count, motility, and stamina",
+    "Nutrition and immune-support guidance for cellular health",
+    "Progress monitoring and follow-up consultations",
+  ],
+  icon: "🌿",
+}
 ];
 
 export const findSpecialty = (slug: string) => specialties.find((s) => s.slug === slug);

@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { specialties } from "@/lib/mock-data";
+import { useEffect, useState } from "react";
+import { getSpecialities, SpecialitiesType } from "@/services/specialitiesService";
+import Skeleton from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
 
 export default function SpecialtiesLayout({
   children,
@@ -11,6 +14,25 @@ export default function SpecialtiesLayout({
 }) {
   const pathname = usePathname();
   const isIndex = pathname === "/specialties";
+  const [specialities, setSpecialities] = useState<SpecialitiesType[]>([]);
+  const [specialitiesLoading, setSpecialitiesLoading] = useState<boolean>(true);
+
+  useEffect(()=>{
+    const fetchSpecialities = async ()=>{
+      try {
+        setSpecialitiesLoading(true);
+        const res = await getSpecialities();
+        setSpecialities(res?.specialities || []);
+      } catch (error) {
+        console.error("Failed to fetch specialities data", error);  
+      }finally{
+        setSpecialitiesLoading(false)
+      }
+    }
+    fetchSpecialities()
+
+  },[])
+  
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-14">
@@ -36,22 +58,34 @@ export default function SpecialtiesLayout({
         >
           All
         </Link>
-        {specialties.map((s) => {
-          const active = pathname === `/specialties/${s.slug}`;
-          return (
-            <Link
-              key={s.slug}
-              href={`/specialties/${s.slug}`}
-              className={`rounded-full px-4 py-2 text-sm transition-colors ${
-                active
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary hover:bg-accent"
-              }`}
-            >
-              {s.name}
-            </Link>
-          );
-        })}
+        {specialitiesLoading ? (
+          Array.from({ length: 7 }).map((_, index) => (
+            <Skeleton
+              key={index}
+              width={112}
+              height={36}
+              borderRadius={9999}
+              containerClassName="leading-none"
+            />
+          ))
+        ) : (
+          specialities.toReversed().map((s) => {
+            const active = pathname === `/specialties/${s.slug}`;
+            return (
+              <Link
+                key={s.slug}
+                href={`/specialties/${s.slug}`}
+                className={`rounded-full px-4 py-2 text-sm transition-colors ${
+                  active
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary hover:bg-accent"
+                }`}
+              >
+                {s.name}
+              </Link>
+            );
+          })
+        )}
       </div>
 
       {/* Nested pages automatically render here via the children prop */}

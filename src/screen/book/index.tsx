@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -8,30 +9,35 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useApp } from "@/lib/app-store";
-import { specialties, type SpecialtySlug } from "@/lib/mock-data";
+import { useApp } from "@/store/appStore";
+
 import { Check, ChevronRight } from "lucide-react";
+import { getSpecialities, SpecialitiesType } from "@/services/specialitiesService";
+import { BookingPayload, postBooking } from "@/services/bookService";
+import { log } from "node:console";
+import { SpecialtySlug } from "../patient-card";
 
 const times = ["08:30", "09:30", "11:00", "12:30", "14:00", "15:30", "17:00"];
 
 export default function BookPage() {
+  const [specialties, setSpecialities] = useState<SpecialitiesType[] | undefined>([]);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { addAppointment, user } = useApp();
+  const { user } = useApp();
 
   // Next.js Search Parameters replacement for TanStack Router
   const initialSpecialty = searchParams.get("specialty") as SpecialtySlug | null;
 
   const [step, setStep] = useState(1);
   const [specialty, setSpecialty] = useState<SpecialtySlug | "">(
-    initialSpecialty && specialties.some((s) => s.slug === initialSpecialty) 
+    initialSpecialty && specialties?.some((s) => s.slug === initialSpecialty) 
       ? initialSpecialty 
       : ""
   );
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [type, setType] = useState<"In-person" | "Virtual">("In-person");
-  const [name, setName] = useState(user?.name ?? "");
+  const [name, setName] = useState(user?.fullName ?? "");
   const [symptoms, setSymptoms] = useState("");
 
   const canNext = useMemo(() => {
@@ -41,25 +47,45 @@ export default function BookPage() {
     return true;
   }, [step, specialty, date, time, type]);
 
-  const submit = () => {
+  useEffect(()=>{
+    const fetchSpecialties = async ()=>{
+      try {
+        const res = await getSpecialities();
+        setSpecialities(res?.specialities || undefined)
+      } catch (error) {
+        console.error("Failed to load specialties", error);
+      }
+    }
+
+    fetchSpecialties();
+  },[])
+
+  const submit = async () => {
+  try {
+    const payload: BookingPayload = {
+      specialty: specialty,
+      date: date,
+      time: time,
+      type: type,
+      symptoms: symptoms,
+    };
+
     if (!name.trim() || !symptoms.trim() || symptoms.length < 10) {
       toast.error("Please add your name and describe symptoms (min 10 chars).");
       return;
     }
-    
-    addAppointment({ 
-      patient: name.trim(), 
-      specialty: specialty as SpecialtySlug, 
-      date, 
-      time, 
-      type, 
-      symptoms: symptoms.trim() 
-    });
-    
+
+    await postBooking(payload);
+
     toast.success("Appointment requested! We'll confirm shortly.");
     router.push("/patient");
-  };
+  } catch (err: any) {
+    const errorMessage = err?.response?.data?.message || "Failed to Book Appointment";
+      
 
+    toast.error(errorMessage);
+  }
+};
   return (
     <div className="mx-auto max-w-3xl px-4 py-14">
       <div className="text-xs font-medium uppercase tracking-widest text-primary">Book a consultation</div>
@@ -93,11 +119,11 @@ export default function BookPage() {
             <div>
               <h2 className="font-display text-xl font-semibold">Choose a department</h2>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {specialties.map((s) => (
+                {specialties?.map((s) => (
                   <button
                     key={s.slug}
                     type="button"
-                    onClick={() => setSpecialty(s.slug)}
+                    onClick={() => setSpecialty(s.slug as SpecialtySlug)}
                     className={`rounded-xl border p-4 text-left transition-all ${
                       specialty === s.slug ? "border-primary bg-primary/5 shadow-soft" : "border-border hover:border-primary/40"
                     }`}
@@ -185,7 +211,7 @@ export default function BookPage() {
                   <Textarea id="s" rows={5} maxLength={1000} value={symptoms} onChange={(e) => setSymptoms(e.target.value)} placeholder="What brings you in?" />
                 </div>
                 <div className="rounded-lg bg-secondary/60 p-4 text-sm space-y-1">
-                  <div><b>Department:</b> {specialties.find((x) => x.slug === specialty)?.name}</div>
+                  <div><b>Department:</b> {specialties?.find((x) => x.slug === specialty)?.name}</div>
                   <div><b>When:</b> {date} at {time}</div>
                   <div><b>Type:</b> {type}</div>
                 </div>

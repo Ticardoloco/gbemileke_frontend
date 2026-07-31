@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import { Inter, Fraunces } from "next/font/google";
-import { AppProvider } from "@/lib/app-store";
-import { SiteHeader, SiteFooter } from "@/components/SiteHeader";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css"; // Your Tailwind v4 stylesheet
 import HeaderLayout from "@/components/HeaderLayout";
@@ -36,7 +34,6 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${sansFont.variable} ${displayFont.variable}`}>
       <body className="antialiased flex min-h-screen flex-col">
-        <AppProvider>
           {/* Layout elements like SiteHeader & SiteFooter stay here */}
           <HeaderLayout>
           <main className="flex-1">
@@ -44,7 +41,7 @@ export default function RootLayout({
           </main>
           </HeaderLayout>
           <Toaster />
-        </AppProvider>
+        
       </body>
     </html>
   );

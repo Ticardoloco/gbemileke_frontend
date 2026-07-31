@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useApp } from "@/lib/app-store";
+import { useApp } from "@/store/appStore";
 import { formatNaira, specialties, type SpecialtySlug } from "@/lib/mock-data";
 
 export default function Shop() {

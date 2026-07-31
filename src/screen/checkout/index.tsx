@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useApp } from "@/lib/app-store";
+import { useApp } from "@/store/appStore";
 import { formatNaira } from "@/lib/mock-data";
 
 export default function Checkout() {

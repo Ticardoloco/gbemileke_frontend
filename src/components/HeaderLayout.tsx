@@ -1,6 +1,7 @@
 "use client"
 import { usePathname } from "next/navigation";
-import { SiteFooter, SiteHeader } from "./SiteHeader";
+import { SiteHeader } from "./SiteHeader";
+import { SiteFooter } from "./SiteFooter";
 
 export default function HeaderLayout({
   children,

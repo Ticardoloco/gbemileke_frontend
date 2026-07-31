@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { useApp } from "@/lib/app-store";
+import { useApp } from "@/store/appStore";
 import { formatNaira } from "@/lib/mock-data";
 
 export default function CartPage() {

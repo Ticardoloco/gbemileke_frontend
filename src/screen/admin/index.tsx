@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useApp } from "@/lib/app-store";
+import { useApp } from "@/store/appStore";
 import { formatNaira, specialties, type MockAppointment, type Product, type SpecialtySlug } from "@/lib/mock-data";
 
 export default function AdminDashboard() {
@@ -196,7 +196,7 @@ function PatientsPanel() {
   const [q, setQ] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
   const [note, setNote] = useState("");
-  const [rxProduct, setRxProduct] = useState("");
+  const [rxProduct, setRxProduct] = useState<string | null>(null);
   const [rxDosage, setRxDosage] = useState("");
 
   const list = patients.filter((p) => p.name.toLowerCase().includes(q.toLowerCase()) || p.id.toLowerCase().includes(q.toLowerCase()));

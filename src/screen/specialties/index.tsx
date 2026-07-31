@@ -1,12 +1,46 @@
+"use client"
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
-import { specialties } from "@/lib/mock-data";
 import { ArrowRight } from "lucide-react";
+import { useEffect, useState } from "react";
+import { getSpecialities, SpecialitiesType } from "@/services/specialitiesService";
+import { SpecialtiesIndexSkeleton } from "@/components/skeleton/SpecialityPageSkeleton";
 
 export default function SpecialtiesIndex() {
+    const [specialities, setSpecialities] = useState<SpecialitiesType[]>([]);
+    const [specialitiesLoading, setSpecialitiesLoading] = useState<boolean>(true);
+
+    useEffect(()=>{
+      let isMounted = true;
+      const fetchSpecialities = async () =>{
+        try {
+          setSpecialitiesLoading(true);
+          const res = await getSpecialities();
+          if (isMounted) { 
+            setSpecialities(res?.specialities || [])
+          }
+        } catch (error) {
+         if (isMounted) console.error("Failed to fetch specialities", error);
+        } finally{
+          if(isMounted) setSpecialitiesLoading(false)
+        }
+      }
+
+      fetchSpecialities();
+      return ()=>{
+        isMounted = false;
+      }
+    },[])
+
+    
   return (
     <div className="grid gap-6 md:grid-cols-2">
-      {specialties.map((s) => (
+      {specialitiesLoading ? (
+        Array.from({length: 7}).map((_, index)=>(
+          <SpecialtiesIndexSkeleton key={index}/>
+        ))
+      ): (
+        specialities.toReversed().map((s) => (
         <Link key={s.slug} href={`/specialties/${s.slug}`}>
           <Card className="h-full transition-all hover:-translate-y-1 hover:shadow-soft">
             <CardContent className="flex gap-5 p-6">
@@ -24,7 +58,8 @@ export default function SpecialtiesIndex() {
             </CardContent>
           </Card>
         </Link>
-      ))}
+      ))
+      )}
     </div>
   );
 }
