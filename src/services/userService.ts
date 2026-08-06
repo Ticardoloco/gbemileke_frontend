@@ -13,10 +13,11 @@ export interface UpdateProfilePayload {
     country?: string; 
 }
 
-interface PaitentType {
+export interface PatientType {
     _id: string;
     fullName: string;
     email: string;
+    gender?: string;
     phoneNumber: string;
 }
 
@@ -41,9 +42,9 @@ interface PrescriptionsType{
 }
 
 
-export interface PatientCardDetils{
+export interface PatientCardDetails{
  _id: string;
- patient: PaitentType;
+ patient: PatientType;
  age: number;
  maritalStatus: string;
  nextOfKinName: string;
@@ -55,6 +56,12 @@ export interface PatientCardDetils{
  cardFee: number;
  history: HistoryType[];
  prescriptions: PrescriptionsType;
+}
+
+export interface PatientCardResponse{
+    success: boolean;
+    count: number;
+    cards: PatientCardDetails[];
 }
 
 export interface PatientCardPayload{
@@ -77,6 +84,10 @@ export interface InitializePaymentResponse{
     reference: string;
 }
 
+ interface FilterCard{
+    specialty?: string;
+}
+
 export const getCurrentUser = async ():Promise<UserProfile> =>{
     const response = await apiClient.get<UserProfile>("/api/user/profile");
     return response.data
@@ -87,13 +98,16 @@ export const updateProfile = async(payload: UpdateProfilePayload): Promise<UserP
     return response.data;
 }
 
-export const getPatientCard = async (): Promise<PatientCardDetils> =>{
-    const response = await apiClient.get<PatientCardDetils>("/api/patient-card/me");
-    return response.data;
-}
 
-export const postPatientCard = async(payload?: PatientCardPayload): Promise<PatientCardDetils> => {
-    const response = await apiClient.post<PatientCardDetils>("/api/patient-cards/verify-payment", payload);
+export const getPatientCard = async (filter?: FilterCard): Promise<PatientCardResponse> => {
+  const response = await apiClient.get<PatientCardResponse>("/api/patient-cards/me", {
+    params: filter?.specialty ? { specialty: filter.specialty } : undefined,
+  });
+  return response.data; 
+};
+
+export const postPatientCard = async(payload?: PatientCardPayload): Promise<PatientCardDetails> => {
+    const response = await apiClient.post<PatientCardDetails>("/api/patient-cards/verify-payment", payload);
     return response.data;
 }
 

@@ -11,7 +11,8 @@ import {
   CreditCard, 
   LogOut, 
   ChevronDown,
-  Calendar
+  Calendar,
+  Package
 } from "lucide-react";
 import { useState } from "react";
 import { useApp } from "@/store/appStore";
@@ -33,22 +34,20 @@ const nav = [
 ];
 
 export function SiteHeader() {
-  // 1. Destructure logout along with cart and user
   const { cart, user, logout } = useApp();
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
-  const cartCount = cart.reduce((s, i) => s + i.qty, 0);
+  const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
 
   // Fallbacks for patient details
   const patientId = user?.id || "GBH-2026-8812";
-  const displayName = user?.fullName || user?.fullName || "Patient";
+  const displayName = user?.fullName || "Patient";
   const userFirstName = displayName.split(" ")[0];
 
-  // 2. Updated handleLogout to call store logout before redirecting
   const handleLogout = () => {
-    logout(); // Clears user from Zustand/Context state and localStorage
+    logout();
     router.push("/login");
   };
 
@@ -135,7 +134,7 @@ export function SiteHeader() {
 
                 <DropdownMenuContent align="end" className="w-72 p-2">
                   {/* Digital Patient ID Card Banner */}
-                  <div className="rounded-xl bg-gradient-to-br from-primary/15 via-primary/5 to-secondary p-3.5 border border-primary/20 space-y-2">
+                  <div className="rounded-xl bg-linear-to-br from-primary/15 via-primary/5 to-secondary p-3.5 border border-primary/20 space-y-2">
                     <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-primary">
                       <span className="flex items-center gap-1">
                         <CreditCard className="h-3.5 w-3.5" /> Digital Patient ID
@@ -161,6 +160,21 @@ export function SiteHeader() {
                     className="cursor-pointer text-xs flex items-center gap-2"
                   >
                     <Calendar className="h-4 w-4 text-primary" /> My Care Dashboard
+                  </DropdownMenuItem>
+
+                  {/* Added My Appointments Link */}
+                  <DropdownMenuItem
+                    onClick={() => router.push("/book/appointments")}
+                    className="cursor-pointer text-xs flex items-center gap-2"
+                  >
+                    <Calendar className="h-4 w-4 text-primary" /> My Appointments
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    onClick={() => router.push("/my-orders")}
+                    className="cursor-pointer text-xs flex items-center gap-2"
+                  >
+                    <Package className="h-4 w-4 text-primary" /> My Orders
                   </DropdownMenuItem>
 
                   <DropdownMenuItem
@@ -242,7 +256,7 @@ export function SiteHeader() {
                 <div className="rounded-xl border border-primary/20 bg-primary/5 p-3 space-y-1">
                   <div className="flex items-center justify-between text-[10px] font-bold text-primary uppercase">
                     <span className="flex items-center gap-1">
-                      <CreditCard className="h-3 w-3" /> Patient Card
+                      <CreditCard className="h-3 w-3" /> Patient Id
                     </span>
                     <span>{patientId}</span>
                   </div>
@@ -250,21 +264,36 @@ export function SiteHeader() {
                 </div>
 
                 <div className="grid gap-1">
+                  {/* Added Mobile Appointments Link */}
+                  <Link
+                    href="/book/appointments"
+                    onClick={() => setOpen(false)}
+                    className="rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary flex items-center gap-2"
+                  >
+                    <Calendar className="h-4 w-4 text-primary" /> My Appointments
+                  </Link>
+                  <Link
+                    href="/my-orders"
+                    onClick={() => setOpen(false)}
+                    className="rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary flex items-center gap-2"
+                  >
+                    <Package className="h-4 w-4 text-primary" /> My Orders
+                  </Link>
                   <Link
                     href="/profile"
                     onClick={() => setOpen(false)}
-                    className="rounded-md px-3 py-2 text-sm font-medium text-primary hover:bg-secondary"
+                    className="rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary flex items-center gap-2"
                   >
-                    My Profile
+                    <UserIcon className="h-4 w-4 text-primary" /> My Profile
                   </Link>
                   <button
                     onClick={() => {
                       setOpen(false);
                       handleLogout();
                     }}
-                    className="w-full text-left rounded-md px-3 py-2 text-sm font-medium text-destructive hover:bg-destructive/10"
+                    className="w-full text-left rounded-md px-3 py-2 text-sm font-medium text-destructive hover:bg-destructive/10 flex items-center gap-2"
                   >
-                    Log out
+                    <LogOut className="h-4 w-4" /> Log out
                   </button>
                 </div>
               </div>

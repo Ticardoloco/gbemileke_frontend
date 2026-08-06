@@ -86,3 +86,21 @@ export const logout = async (): Promise<void> =>{
         }
     }
 };
+
+export const changePassword = async (currentPassword: string, newPassword: string) =>{
+    try {
+        const response = await apiClient.put('/api/user/change-password', {currentPassword, newPassword})
+        return response.data
+    } catch (error) {
+        throw handleApiError(error, "Failed to change password");
+    }
+}
+
+export const deleteAccount = async (): Promise<void> => {
+    try{
+        const response = await apiClient.delete("/api/user/profile");
+        return response.data;
+    }catch(error){
+        throw handleApiError(error, "Failed to delete account");
+    }
+}

@@ -43,7 +43,7 @@ export default function SpecialtiesLayout({
         Our Specialties
       </h1>
       <p className="mt-3 max-w-2xl text-muted-foreground">
-        Five focused departments — each one blending traditional herbal knowledge with modern clinical practice.
+        Eight focused departments — each one blending traditional herbal knowledge with modern clinical practice.
       </p>
 
       {/* Navigation Pills */}

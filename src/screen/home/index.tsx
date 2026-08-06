@@ -163,7 +163,7 @@ export default function LandingPage() {
               Our Specialties
             </div>
             <h2 className="mt-2 font-display text-3xl font-semibold md:text-4xl">
-              Five departments. One holistic promise.
+              Eight departments. One holistic promise.
             </h2>
           </div>
           <Link
@@ -183,7 +183,7 @@ export default function LandingPage() {
       ))
     ) : (
       /* Show items after fetch completes */
-      specialities.toReversed().map((item) => (
+      specialities.toReversed().slice(0, 3).map((item) => (
         <Specialities key={item.slug} item={item} />
       ))
     )}

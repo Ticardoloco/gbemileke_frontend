@@ -9,18 +9,19 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useApp } from "@/store/appStore";
 
 import { Check, ChevronRight } from "lucide-react";
 import { getSpecialities, SpecialitiesType } from "@/services/specialitiesService";
 import { BookingPayload, postBooking } from "@/services/bookService";
-import { log } from "node:console";
 import { SpecialtySlug } from "../patient-card";
 
 const times = ["08:30", "09:30", "11:00", "12:30", "14:00", "15:30", "17:00"];
 
 export default function BookPage() {
   const [specialties, setSpecialities] = useState<SpecialitiesType[] | undefined>([]);
+  const [specialtiesLoading, setSpecialitiesLoading] = useState<boolean>(true);
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useApp();
@@ -47,45 +48,47 @@ export default function BookPage() {
     return true;
   }, [step, specialty, date, time, type]);
 
-  useEffect(()=>{
-    const fetchSpecialties = async ()=>{
+  useEffect(() => {
+    const fetchSpecialties = async () => {
       try {
+        setSpecialitiesLoading(true);
         const res = await getSpecialities();
-        setSpecialities(res?.specialities || undefined)
+        setSpecialities(res?.specialities || undefined);
       } catch (error) {
         console.error("Failed to load specialties", error);
+      } finally {
+        setSpecialitiesLoading(false);
       }
-    }
-
-    fetchSpecialties();
-  },[])
-
-  const submit = async () => {
-  try {
-    const payload: BookingPayload = {
-      specialty: specialty,
-      date: date,
-      time: time,
-      type: type,
-      symptoms: symptoms,
     };
 
-    if (!name.trim() || !symptoms.trim() || symptoms.length < 10) {
-      toast.error("Please add your name and describe symptoms (min 10 chars).");
-      return;
+    fetchSpecialties();
+  }, []);
+
+  const submit = async () => {
+    try {
+      const payload: BookingPayload = {
+        specialty: specialty,
+        date: date,
+        time: time,
+        type: type,
+        symptoms: symptoms,
+      };
+
+      if (!name.trim() || !symptoms.trim() || symptoms.length < 10) {
+        toast.error("Please add your name and describe symptoms (min 10 chars).");
+        return;
+      }
+
+      await postBooking(payload);
+
+      toast.success("Appointment requested! We'll confirm shortly.");
+      router.push("/book/appointments");
+    } catch (err: any) {
+      const errorMessage = err?.response?.data?.message || "Failed to Book Appointment";
+      toast.error(errorMessage);
     }
+  };
 
-    await postBooking(payload);
-
-    toast.success("Appointment requested! We'll confirm shortly.");
-    router.push("/patient");
-  } catch (err: any) {
-    const errorMessage = err?.response?.data?.message || "Failed to Book Appointment";
-      
-
-    toast.error(errorMessage);
-  }
-};
   return (
     <div className="mx-auto max-w-3xl px-4 py-14">
       <div className="text-xs font-medium uppercase tracking-widest text-primary">Book a consultation</div>
@@ -119,20 +122,33 @@ export default function BookPage() {
             <div>
               <h2 className="font-display text-xl font-semibold">Choose a department</h2>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                {specialties?.map((s) => (
-                  <button
-                    key={s.slug}
-                    type="button"
-                    onClick={() => setSpecialty(s.slug as SpecialtySlug)}
-                    className={`rounded-xl border p-4 text-left transition-all ${
-                      specialty === s.slug ? "border-primary bg-primary/5 shadow-soft" : "border-border hover:border-primary/40"
-                    }`}
-                  >
-                    <div className="text-2xl">{s.icon}</div>
-                    <div className="mt-2 font-semibold">{s.name}</div>
-                    <div className="text-xs text-muted-foreground">{s.tagline}</div>
-                  </button>
-                ))}
+                {specialtiesLoading ? (
+                  Array.from({ length: 6 }).map((_, idx) => (
+                    <div
+                      key={idx}
+                      className="rounded-xl border border-border p-4 space-y-2"
+                    >
+                      <Skeleton className="h-8 w-8 rounded-md" />
+                      <Skeleton className="h-5 w-3/4 rounded-md" />
+                      <Skeleton className="h-3 w-1/2 rounded-md" />
+                    </div>
+                  ))
+                ) : (
+                  specialties?.toReversed().map((s) => (
+                    <button
+                      key={s.slug}
+                      type="button"
+                      onClick={() => setSpecialty(s.slug as SpecialtySlug)}
+                      className={`rounded-xl border p-4 text-left transition-all ${
+                        specialty === s.slug ? "border-primary bg-primary/5 shadow-soft" : "border-border hover:border-primary/40"
+                      }`}
+                    >
+                      <div className="text-2xl">{s.icon}</div>
+                      <div className="mt-2 font-semibold">{s.name}</div>
+                      <div className="text-xs text-muted-foreground">{s.tagline}</div>
+                    </button>
+                  ))
+                )}
               </div>
             </div>
           )}

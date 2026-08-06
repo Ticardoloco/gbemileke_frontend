@@ -1,15 +1,19 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { clearAuthSession } from "@/api/apiClient";
-import { UserProfile } from "@/services/authService"; // or your user service
+import { UserProfile } from "@/services/authService";
 import { getCurrentUser } from "@/services/userService";
 
 export interface CartItem {
-  id: string;
+  _id?: string;
   name: string;
   price: number;
-  qty: number;
+  quantity: number;
   image?: string;
+  category?: string;
+  stock?: number;
+  description?: string;
+  usage?: string;
 }
 
 interface AppState {
@@ -26,7 +30,7 @@ interface AppState {
   logout: () => void;
 
   // Cart Actions
-  addToCart: (item: CartItem) => void;
+  addToCart: (product: CartItem, quantity?: number) => void;
   removeFromCart: (id: string) => void;
   updateQuantity: (id: string, qty: number) => void;
   clearCart: () => void;
@@ -44,7 +48,7 @@ export const useApp = create<AppState>()(
       setHasHydrated: (state) => set({ _hasHydrated: state }),
 
       // Set User Profile
-      setUser: (user) => set({ user }),
+      setUser: (user: UserProfile | null) => set({ user }),
 
       // Fetch User Profile directly from API and sync store
       fetchProfile: async () => {
@@ -67,30 +71,58 @@ export const useApp = create<AppState>()(
       },
 
       // Cart Actions
-      addToCart: (item) => {
+      addToCart: (product: CartItem, quantityToAdd = 1) => {
         const { cart } = get();
-        const existingIndex = cart.findIndex((i) => i.id === item.id);
+        // Support both MongoDB _id and standard id
+        const targetId = product._id;
+
+        if (!targetId) {
+          console.error("Cannot add item to cart without an _id or id:", product);
+          return;
+        }
+
+        const existingIndex = cart.findIndex(
+          (item) => item._id === targetId
+        );
+
         if (existingIndex > -1) {
-          const updated = [...cart];
-          updated[existingIndex].qty += item.qty || 1;
-          set({ cart: updated });
+          // ✅ Immutable update
+          const updatedCart = [...cart];
+          const existingItem = updatedCart[existingIndex];
+          
+          updatedCart[existingIndex] = {
+            ...existingItem,
+            quantity: existingItem.quantity + (product.quantity || quantityToAdd),
+          };
+
+          set({ cart: updatedCart });
         } else {
-          set({ cart: [...cart, { ...item, qty: item.qty || 1 }] });
+          // ✅ Construct safe CartItem
+          const newItem: CartItem = {
+            ...product,
+            _id: product._id || targetId,
+            quantity: product.quantity || quantityToAdd,
+          };
+
+          set({ cart: [...cart, newItem] });
         }
       },
 
-      removeFromCart: (id) => {
-        set({ cart: get().cart.filter((item) => item.id !== id) });
+      removeFromCart: (id: string | undefined) => {
+        set({
+          cart: get().cart.filter((item) => item._id !== id && item._id !== id),
+        });
       },
 
-      updateQuantity: (id, qty) => {
+      updateQuantity: (id: string, qty: number) => {
         if (qty <= 0) {
           get().removeFromCart(id);
           return;
         }
         set({
-          cart: get().cart.map((item) =>
-            item.id === id ? { ...item, qty } : item
+          cart: get().cart.map((item) => item._id === id
+              ? { ...item, quantity: qty } // ✅ Fixed: Updates 'quantity' properly
+              : item
           ),
         });
       },

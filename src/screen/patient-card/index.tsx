@@ -15,6 +15,7 @@ import {
   Loader2,
   X,
   CheckCircle2,
+  Tag,
 } from "lucide-react";
 import {
   initializePayment,
@@ -31,6 +32,8 @@ export type SpecialtySlug =
   | "infertility"
   | "infection-treatment"
   | "low-sperm-count";
+
+const CARD_FEE_FORMATTED = "₦10,000";
 
 export default function RegisterPatientCardPage() {
   const searchParams = useSearchParams();
@@ -175,16 +178,16 @@ export default function RegisterPatientCardPage() {
     try {
       setIsSubmitting(true);
       setErrorMsg("");
-const registrationDetails = {
-  specialty: selectedSpecialty,
-  age: Number(formData.age),
-  maritalStatus: formData.maritalStatus,
-  nextOfKinName: formData.nextOfKinName.trim(),
-  nextOfKinPhone: formData.nextOfKinPhone.trim(),
-  stateOfOrigin: formData.stateOfOrigin.trim(),
-  // Send the exact path of the registration page:
-  callback_url: `${window.location.origin}/patient-card`, // Or wherever this page lives
-};
+      const registrationDetails = {
+        specialty: selectedSpecialty,
+        age: Number(formData.age),
+        maritalStatus: formData.maritalStatus,
+        nextOfKinName: formData.nextOfKinName.trim(),
+        nextOfKinPhone: formData.nextOfKinPhone.trim(),
+        stateOfOrigin: formData.stateOfOrigin.trim(),
+        callback_url: `${window.location.origin}/patient-card`,
+      };
+
       // Save form details in session storage before leaving the app
       sessionStorage.setItem(
         "pending_card_details",
@@ -228,8 +231,8 @@ const registrationDetails = {
           Get Your Patient Card
         </h1>
         <p className="mt-2 text-muted-foreground text-sm">
-          Select a specialty card below to initialize payment and complete
-          registration.
+          Select a specialty card below to register. Registration card fee is{" "}
+          <span className="font-semibold text-foreground">{CARD_FEE_FORMATTED}</span>.
         </p>
       </div>
 
@@ -274,7 +277,14 @@ const registrationDetails = {
                     </p>
                   </div>
 
-                  <div className="mt-6 pt-4 border-t border-border">
+                  <div className="mt-6 pt-4 border-t border-border flex flex-col gap-3">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Card Fee</span>
+                      <span className="font-bold text-foreground">
+                        {CARD_FEE_FORMATTED}
+                      </span>
+                    </div>
+
                     <button
                       type="button"
                       onClick={() => handleSelectCard(slug)}
@@ -291,7 +301,7 @@ const registrationDetails = {
       {/* Registration Modal */}
       {selectedSpecialty && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-xl border border-border bg-background p-6 shadow-xl relative">
+          <div className="w-full max-w-md rounded-xl border border-border bg-background p-6 shadow-xl relative max-h-[90vh] overflow-y-auto">
             <button
               type="button"
               onClick={closeModal}
@@ -310,6 +320,17 @@ const registrationDetails = {
                 {selectedSpecialty}
               </span>
             </p>
+
+            {/* Fee Summary Card */}
+            <div className="mb-5 flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 p-3 text-xs">
+              <div className="flex items-center gap-2 text-primary font-medium">
+                <Tag className="h-4 w-4" />
+                <span>Patient Card Issuance Fee</span>
+              </div>
+              <span className="text-sm font-bold text-foreground">
+                {CARD_FEE_FORMATTED}
+              </span>
+            </div>
 
             {errorMsg && (
               <div className="mb-4 flex items-center gap-2 rounded-md bg-destructive/15 p-3 text-xs text-destructive">
@@ -408,7 +429,7 @@ const registrationDetails = {
                       Redirecting to Paystack...
                     </>
                   ) : (
-                    "Proceed to Paystack Payment"
+                    `Proceed to Pay ${CARD_FEE_FORMATTED}`
                   )}
                 </button>
               </div>
@@ -452,6 +473,10 @@ const registrationDetails = {
                 <span className="font-medium capitalize">
                   {createdCard?.specialty || "N/A"}
                 </span>
+              </div>
+              <div className="flex justify-between border-b border-border/50 pb-2">
+                <span className="text-muted-foreground">Amount Paid:</span>
+                <span className="font-medium">{CARD_FEE_FORMATTED}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Status:</span>

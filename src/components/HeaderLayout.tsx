@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import { usePathname } from "next/navigation";
 import { SiteHeader } from "./SiteHeader";
 import { SiteFooter } from "./SiteFooter";
@@ -8,14 +8,16 @@ export default function HeaderLayout({
 }: {
   children: React.ReactNode;
 }) {
-    const pathname = usePathname();
-    const notAdmin = pathname.startsWith("/admin")
+  const pathname = usePathname();
+  const noHeaderRoutes = ["/admin", "/practitioner"];
+  const isNoHeaderRoute = noHeaderRoutes.some((route) =>
+    pathname.startsWith(route),
+  );
   return (
-      <div>
-        {!notAdmin && <SiteHeader/>}
-        {children}
-        {!notAdmin && <SiteFooter/>}
-      </div>
-
+    <div>
+      {!isNoHeaderRoute && <SiteHeader />}
+      {children}
+      {!isNoHeaderRoute && <SiteFooter />}
+    </div>
   );
 }
