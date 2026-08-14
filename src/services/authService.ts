@@ -14,8 +14,16 @@ export interface LoginPayload {
     password?: string;
 }
 
+interface Address {
+    city?: string;
+    state?: string;
+     street?: string;
+    zipCode?: string;
+    country?: string;
+}
+
 export interface UserProfile {
-    user: UserProfile;
+    _id?: string;
     id: string;
     fullName?: string;
     email: string;
@@ -23,11 +31,9 @@ export interface UserProfile {
     avatar?: string;
     gender?: string;
     phoneNumber?: string;
-    street?: string;
-    city?: string;
-    state?: string;
-    zipCode?: string;
-    country?: string;
+    address?: Address;
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 export interface AuthResponse {

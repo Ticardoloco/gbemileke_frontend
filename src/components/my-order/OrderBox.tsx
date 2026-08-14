@@ -20,6 +20,7 @@ const OrderBox = ({
 }) => {
   if (isLoading || !order || !order._id)
     return <OrderBoxSkeleton />;
+
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card transition-all hover:border-primary/30 shadow-sm">
       {/* Top Banner Header */}
@@ -100,16 +101,19 @@ const OrderBox = ({
         </div>
 
         <div className="flex items-center gap-2">
-          {!order.isPaid && order.paymentInfo?.authorizationUrl && (
-            <a
-              href={order.paymentInfo.authorizationUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700 transition-colors"
-            >
-              Pay Now <ExternalLink className="h-3 w-3" />
-            </a>
-          )}
+          {/* Hide 'Pay Now' button when status is 'cancelled' */}
+          {!order.isPaid &&
+            order.orderStatus !== "cancelled" &&
+            order.paymentInfo?.authorizationUrl && (
+              <a
+                href={order.paymentInfo.authorizationUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700 transition-colors"
+              >
+                Pay Now <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
 
           <button
             onClick={() => setSelectedOrder(order)}

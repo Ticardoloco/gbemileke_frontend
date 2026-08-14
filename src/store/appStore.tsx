@@ -55,8 +55,11 @@ export const useApp = create<AppState>()(
         set({ isLoadingProfile: true });
         try {
           const profile = await getCurrentUser();
-          set({ user: profile, isLoadingProfile: false });
-          return profile;
+          // getCurrentUser may return the user directly or an object like { user }
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const user: UserProfile | null = profile && (profile as any).user ? (profile as any).user : (profile as any) || null;
+          set({ user, isLoadingProfile: false });
+          return user;
         } catch (error) {
           console.error("Failed to fetch user profile:", error);
           set({ isLoadingProfile: false });

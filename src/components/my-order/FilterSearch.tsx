@@ -10,7 +10,8 @@ const FilterSearch = ({ activeTab, searchQuery, setActiveTab, setSearchQuery }: 
                     { id: "all", label: "All Orders" },
                     { id: "processing", label: "Processing" },
                     { id: "unpaid", label: "Unpaid" },
-                    { id: "completed", label: "Completed" },
+                    { id: "delivered", label: "Delivered" },
+                    { id: "cancelled", label: "Cancelled" },
                   ].map((tab) => (
                     <button
                       key={tab.id}

@@ -1,4 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */"use client";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+"use client";
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -107,11 +108,12 @@ export default function AppointmentDetailPage() {
             {status}
           </span>
         );
+      case "rejected":
       case "cancelled":
         return (
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 capitalize">
             <XCircle className="w-4 h-4" />
-            Cancelled
+            {status}
           </span>
         );
       default:
@@ -125,6 +127,9 @@ export default function AppointmentDetailPage() {
 
   const isVirtual = appointment?.type?.toLowerCase().includes("virtual");
   const isApproved = appointment?.status?.toLowerCase() === "approved";
+  const isRejectedOrCancelled =
+    appointment?.status?.toLowerCase() === "rejected" ||
+    appointment?.status?.toLowerCase() === "cancelled";
 
   if (loading) {
     return (
@@ -208,6 +213,21 @@ export default function AppointmentDetailPage() {
           </button>
         )}
       </div>
+
+      {/* Rejection / Cancellation Reason Banner */}
+      {isRejectedOrCancelled && appointment.rejectionReason && (
+        <div className="mb-6 p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3 text-rose-900">
+          <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+          <div>
+            <h3 className="text-sm font-bold capitalize">
+              {appointment.status} Reason
+            </h3>
+            <p className="text-xs sm:text-sm mt-0.5 leading-relaxed text-rose-800">
+              {appointment.rejectionReason}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

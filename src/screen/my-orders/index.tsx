@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import { useState, useMemo, useEffect } from "react";
@@ -12,9 +13,12 @@ import {
   Phone,
   ChevronLeft,
   ChevronRight,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import {
   getMyOrders,
+  cancelOrder,
   Order,
   OrderItem,
   OrdersResponse,
@@ -31,6 +35,11 @@ export default function OrdersPage() {
   const [activeTab, setActiveTab] = useState<string>("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Cancellation State
+  const [cancelReason, setCancelReason] = useState("");
+  const [showCancelInput, setShowCancelInput] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -56,11 +65,14 @@ export default function OrdersPage() {
 
   // Reset to page 1 whenever tab or search changes
   useEffect(() => {
-    const currentPageTrigger = () => {
-      setCurrentPage(1);
-    };
-    currentPageTrigger();
+    setCurrentPage(1);
   }, [searchQuery, activeTab]);
+
+  // Reset modal state when selectedOrder changes
+  useEffect(() => {
+    setShowCancelInput(false);
+    setCancelReason("");
+  }, [selectedOrder]);
 
   // 1. Safe Normalized Array Guard
   const ordersList = useMemo(() => {
@@ -71,13 +83,13 @@ export default function OrdersPage() {
     return [];
   }, [orders]);
 
-  // 2. Filtered Logic (Uses safe ordersList)
+  // 2. Filtered Logic (EXCLUDE CANCELLED FROM UNPAID)
   const filteredOrders = useMemo(() => {
     return ordersList.filter((order) => {
       const matchesTab =
         activeTab === "all" ||
         (activeTab === "unpaid"
-          ? !order.isPaid
+          ? !order.isPaid && order.orderStatus !== "cancelled"
           : order.orderStatus === activeTab);
 
       const matchesSearch =
@@ -86,7 +98,7 @@ export default function OrdersPage() {
           ?.toLowerCase()
           .includes(searchQuery.toLowerCase()) ||
         order.orderItems?.some((item: OrderItem) =>
-          item.name?.toLowerCase().includes(searchQuery.toLowerCase()),
+          item.name?.toLowerCase().includes(searchQuery.toLowerCase())
         );
 
       return matchesTab && matchesSearch;
@@ -101,18 +113,67 @@ export default function OrdersPage() {
     return filteredOrders.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   }, [filteredOrders, currentPage]);
 
-  // 4. Aggregate Stats (Uses safe ordersList)
+  // 4. Aggregate Stats (EXCLUDE CANCELLED FROM UNPAID COUNT)
   const stats = useMemo(() => {
     const paidCount = ordersList.filter((o) => o.isPaid).length;
-    const unpaidCount = ordersList.filter((o) => !o.isPaid).length;
+    const unpaidCount = ordersList.filter(
+      (o) => !o.isPaid && o.orderStatus !== "cancelled"
+    ).length;
 
     return { paidCount, unpaidCount, total: ordersList.length };
   }, [ordersList]);
+
+  // Handle Cancel Order Handler
+  const handleCancelOrder = async () => {
+    if (!selectedOrder?._id) return;
+    if (!cancelReason.trim()) {
+      alert("Please provide a reason for cancellation.");
+      return;
+    }
+
+    try {
+      setIsCancelling(true);
+      await cancelOrder(selectedOrder._id, { cancellationReason: cancelReason });
+
+      // Update state locally
+      const updatedStatus = "cancelled";
+      setOrders((prev) =>
+        prev.map((ord) =>
+          ord._id === selectedOrder._id
+            ? { ...ord, orderStatus: updatedStatus }
+            : ord
+        )
+      );
+
+      setSelectedOrder((prev) =>
+        prev ? { ...prev, orderStatus: updatedStatus } : null
+      );
+
+      setShowCancelInput(false);
+      setCancelReason("");
+    } catch (error) {
+      console.error("Failed to cancel order:", error);
+      alert("Could not cancel order. Please try again.");
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   const renderStatusBadge = (status: string | undefined, isPaid?: boolean) => {
     const normalizedStatus = status ?? "unknown";
     const paid = Boolean(isPaid);
 
+    // 1. Check for cancelled status FIRST before unpaid check
+    if (normalizedStatus === "cancelled") {
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2.5 py-1 text-xs font-semibold text-red-600 border border-red-500/20">
+          <XCircle className="h-3.5 w-3.5" />
+          Cancelled
+        </span>
+      );
+    }
+
+    // 2. Unpaid check SECOND
     if (!paid) {
       return (
         <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-600 border border-amber-500/20">
@@ -122,6 +183,7 @@ export default function OrdersPage() {
       );
     }
 
+    // 3. Paid lifecycle status checks
     switch (normalizedStatus) {
       case "completed":
       case "delivered":
@@ -131,28 +193,36 @@ export default function OrdersPage() {
             Delivered
           </span>
         );
+      case "shipped":
+        return (
+          <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/10 px-2.5 py-1 text-xs font-semibold text-purple-600 border border-purple-500/20">
+            <Truck className="h-3.5 w-3.5" />
+            Shipped
+          </span>
+        );
       case "processing":
         return (
           <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2.5 py-1 text-xs font-semibold text-blue-600 border border-blue-500/20">
-            <Truck className="h-3.5 w-3.5" />
+            <Clock className="h-3.5 w-3.5 animate-spin" />
             Processing
-          </span>
-        );
-      case "cancelled":
-        return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-red-500/10 px-2.5 py-1 text-xs font-semibold text-red-600 border border-red-500/20">
-            <XCircle className="h-3.5 w-3.5" />
-            Cancelled
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground">
+          <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground capitalize">
             {status}
           </span>
         );
     }
   };
+
+  // Only allow cancellation if order is UNPAID and not already cancelled, delivered, or shipped
+  const isCancellable =
+    selectedOrder &&
+    !selectedOrder.isPaid &&
+    selectedOrder.orderStatus !== "cancelled" &&
+    selectedOrder.orderStatus !== "delivered" &&
+    selectedOrder.orderStatus !== "shipped";
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
@@ -243,7 +313,7 @@ export default function OrdersPage() {
                 <span className="font-semibold text-foreground">
                   {Math.min(
                     currentPage * ITEMS_PER_PAGE,
-                    filteredOrders.length,
+                    filteredOrders.length
                   )}
                 </span>{" "}
                 of{" "}
@@ -311,7 +381,7 @@ export default function OrdersPage() {
                 </span>
                 {renderStatusBadge(
                   selectedOrder.orderStatus,
-                  selectedOrder.isPaid,
+                  selectedOrder.isPaid
                 )}
               </div>
               <div className="text-right">
@@ -408,9 +478,56 @@ export default function OrdersPage() {
               </div>
             </div>
 
+            {/* Cancel Order Section (Only visible for unpaid orders) */}
+            {isCancellable && (
+              <div className="mt-4 border-t border-border/60 pt-4">
+                {!showCancelInput ? (
+                  <button
+                    onClick={() => setShowCancelInput(true)}
+                    className="w-full rounded-xl border border-red-500/30 bg-red-500/10 py-2 text-xs font-semibold text-red-600 hover:bg-red-500/20 transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    Cancel This Order
+                  </button>
+                ) : (
+                  <div className="space-y-3 rounded-xl border border-red-500/20 bg-red-500/5 p-3">
+                    <p className="text-xs font-medium text-red-600">
+                      Reason for cancellation:
+                    </p>
+                    <textarea
+                      value={cancelReason}
+                      onChange={(e) => setCancelReason(e.target.value)}
+                      placeholder="e.g. Changed my mind, ordered by mistake..."
+                      className="w-full rounded-lg border border-border bg-background p-2 text-xs focus:outline-none focus:ring-1 focus:ring-red-500 resize-none h-20"
+                    />
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleCancelOrder}
+                        disabled={isCancelling || !cancelReason.trim()}
+                        className="flex-1 rounded-lg bg-red-600 py-2 text-xs font-semibold text-white hover:bg-red-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-1"
+                      >
+                        {isCancelling ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          "Confirm Cancellation"
+                        )}
+                      </button>
+                      <button
+                        onClick={() => setShowCancelInput(false)}
+                        disabled={isCancelling}
+                        className="rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted"
+                      >
+                        Back
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             <button
               onClick={() => setSelectedOrder(null)}
-              className="mt-5 w-full rounded-xl bg-primary py-2.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
+              className="mt-5 w-full rounded-xl bg-primary py-2.5 text-xs font-semibold text-primary-foreground hover:opacity-90 transition-opacity"
             >
               Close
             </button>

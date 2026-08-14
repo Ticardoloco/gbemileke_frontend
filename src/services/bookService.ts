@@ -16,7 +16,8 @@ export interface AppointmentsResponse{
     time: string;
     type: "In-person" | "Virtual";
     symptoms: string;
-    status: "Pending" | "Approved" | "Cancelled" | "Completed";
+    rejectionReason: string;
+    status: "Pending" | "Approved" | "Cancelled" | "Rejected" | "Completed";
     createdAt: string;
 }
 
@@ -29,6 +30,15 @@ export const getAppointments = async (): Promise<{message: string; count: number
     try {
         const response = await apiClient.get<{message: string; count: number; appointments: AppointmentsResponse[] }>("/api/bookings/my-appointments");
         return response.data;
+    } catch (error) {
+        throw error;
+    }
+}
+
+export const getAllAppointments = async (): Promise<{message: string; count: number; appointments: AppointmentsResponse[]} > =>{
+    try {
+        const response = await apiClient.get<{message: string; count: number; appointments: AppointmentsResponse[] }>("/api/bookings");
+        return response.data
     } catch (error) {
         throw error;
     }

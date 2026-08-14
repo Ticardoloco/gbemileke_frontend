@@ -1,15 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useApp } from "@/store/appStore";
-import { formatNaira } from "@/lib/mock-data";
-import { createOrder, CreateOrderPayload, OrdersResponse } from "@/services/orderService";
+import { createOrder } from "@/services/orderService";
+import { formatNaira } from "../cart";
 
 // Helper function to calculate delivery fee based on state and subtotal
 function calculateDeliveryFee(state: string, itemsPrice: number): number {
@@ -62,7 +61,6 @@ function calculateDeliveryFee(state: string, itemsPrice: number): number {
 
 export default function Checkout() {
   const { cart, clearCart } = useApp();
-  const router = useRouter();
 
   // Form states
   const [fullName, setFullName] = useState("");

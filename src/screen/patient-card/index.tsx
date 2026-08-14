@@ -16,6 +16,7 @@ import {
   X,
   CheckCircle2,
   Tag,
+  Calendar,
 } from "lucide-react";
 import {
   initializePayment,
@@ -55,7 +56,7 @@ export default function RegisterPatientCardPage() {
   const [errorMsg, setErrorMsg] = useState<string>("");
 
   const [formData, setFormData] = useState({
-    age: "",
+    dateOfBirth: "",
     maritalStatus: "single",
     nextOfKinName: "",
     nextOfKinPhone: "",
@@ -64,6 +65,9 @@ export default function RegisterPatientCardPage() {
 
   // Guard against double execution in React StrictMode
   const hasVerifiedRef = useRef(false);
+
+  // Get today's date string formatted as YYYY-MM-DD for datepicker max attribute limit
+  const todayStr = new Date().toISOString().split("T")[0];
 
   // 1. Fetch Specialties on mount
   useEffect(() => {
@@ -113,7 +117,7 @@ export default function RegisterPatientCardPage() {
         const payload: PatientCardPayload = {
           reference,
           specialty: storedDetails.specialty,
-          age: Number(storedDetails.age) || 0,
+          dateOfBirth: storedDetails.dateOfBirth || "",
           maritalStatus: storedDetails.maritalStatus || "single",
           nextOfKinName: storedDetails.nextOfKinName || "",
           nextOfKinPhone: storedDetails.nextOfKinPhone || "",
@@ -161,7 +165,7 @@ export default function RegisterPatientCardPage() {
     setSelectedSpecialty(null);
     setErrorMsg("");
     setFormData({
-      age: "",
+      dateOfBirth: "",
       maritalStatus: "single",
       nextOfKinName: "",
       nextOfKinPhone: "",
@@ -180,7 +184,7 @@ export default function RegisterPatientCardPage() {
       setErrorMsg("");
       const registrationDetails = {
         specialty: selectedSpecialty,
-        age: Number(formData.age),
+        dateOfBirth: formData.dateOfBirth,
         maritalStatus: formData.maritalStatus,
         nextOfKinName: formData.nextOfKinName.trim(),
         nextOfKinPhone: formData.nextOfKinPhone.trim(),
@@ -341,18 +345,20 @@ export default function RegisterPatientCardPage() {
 
             <form onSubmit={handleSubmitRegistration} className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
+                {/* Date of Birth Picker */}
                 <div>
-                  <label className="text-xs font-medium">Age *</label>
+                  <label className="text-xs font-medium flex items-center gap-1">
+                    <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+                    Date of Birth *
+                  </label>
                   <input
-                    type="number"
-                    name="age"
+                    type="date"
+                    name="dateOfBirth"
                     required
-                    min="1"
-                    max="120"
-                    placeholder="e.g. 28"
-                    value={formData.age}
+                    max={todayStr}
+                    value={formData.dateOfBirth}
                     onChange={handleInputChange}
-                    className="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 text-xs"
+                    className="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 text-xs focus:ring-1 focus:ring-primary focus:outline-none"
                   />
                 </div>
 
@@ -364,7 +370,7 @@ export default function RegisterPatientCardPage() {
                     name="maritalStatus"
                     value={formData.maritalStatus}
                     onChange={handleInputChange}
-                    className="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 text-xs"
+                    className="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 text-xs focus:ring-1 focus:ring-primary focus:outline-none"
                   >
                     <option value="single">Single</option>
                     <option value="married">Married</option>
@@ -383,7 +389,7 @@ export default function RegisterPatientCardPage() {
                   placeholder="e.g. Lagos"
                   value={formData.stateOfOrigin}
                   onChange={handleInputChange}
-                  className="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 text-xs"
+                  className="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 text-xs focus:ring-1 focus:ring-primary focus:outline-none"
                 />
               </div>
 
@@ -398,7 +404,7 @@ export default function RegisterPatientCardPage() {
                   placeholder="e.g. Jane Doe"
                   value={formData.nextOfKinName}
                   onChange={handleInputChange}
-                  className="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 text-xs"
+                  className="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 text-xs focus:ring-1 focus:ring-primary focus:outline-none"
                 />
               </div>
 
@@ -413,7 +419,7 @@ export default function RegisterPatientCardPage() {
                   placeholder="e.g. +2348000000000"
                   value={formData.nextOfKinPhone}
                   onChange={handleInputChange}
-                  className="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 text-xs"
+                  className="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 text-xs focus:ring-1 focus:ring-primary focus:outline-none"
                 />
               </div>
 

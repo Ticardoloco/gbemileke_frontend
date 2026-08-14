@@ -24,7 +24,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
-// 1. Validation Schema (Strictly Email & Password)
+// Validation Schema
 const loginSchema = z.object({
   email: z
     .string()
@@ -43,7 +43,6 @@ export default function LoginPage() {
   const { setUser } = useApp();
   const [showPassword, setShowPassword] = useState(false);
 
-  // 2. Setup React Hook Form
   const {
     register,
     handleSubmit,
@@ -57,44 +56,48 @@ export default function LoginPage() {
     },
   });
 
-  // 3. Submit Handler (Sends email & password, stores session)
   const onSubmit = async (data: LoginFormData) => {
     try {
-      // API call with payload: { email, password }
       const response = await loginApi({
         email: data.email.trim(),
         password: data.password,
       });
 
-      // Save token
-      if (response?.token || response?.token) {
-        setAccessToken(response.token || response.token);
+      if (response?.token) {
+        setAccessToken(response.token);
       }
 
-      // Extract and format user profile data
       const rawUser = response?.user;
+      const role = rawUser?.role?.toLowerCase();
+
       if (rawUser) {
         const userProfile = {
           id: rawUser.id || "GBH-2026-8812",
-          fullName: rawUser.fullName || "Patient",
+          fullName: rawUser.fullName || "User",
           email: rawUser.email || data.email,
           gender: rawUser.gender,
           phoneNumber: rawUser.phoneNumber,
           avatar: rawUser.avatar,
-          role: rawUser.role
+          role: rawUser.role,
         };
 
-        // 1. Persist user to localStorage
         setStoredUser(userProfile as UserProfile);
 
-        // 2. Update React Context state
         if (setUser) {
           setUser(userProfile as UserProfile);
         }
       }
 
       toast.success("Welcome back to Gbemileke Hospital!");
-      router.push("/patient");
+
+      // Dynamic Role-Based Routing
+      if (role === "practitioner") {
+        router.push("/practitioner");
+      } else if (role === "admin") {
+        router.push("/admin");
+      } else {
+        router.push("/patient");
+      }
     } catch (err) {
       if (err instanceof Error) {
         toast.error(err.message);
@@ -116,10 +119,10 @@ export default function LoginPage() {
             Gbemileke Hospital
           </p>
           <h1 className="mt-1 font-display text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            Patient Portal Login
+            Portal Login
           </h1>
           <p className="mt-1.5 text-xs text-muted-foreground sm:text-sm">
-            Access your medical records, appointments, and prescriptions.
+            Access your hospital dashboard, medical records, and appointments.
           </p>
         </div>
 

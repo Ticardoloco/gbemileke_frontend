@@ -1,4 +1,5 @@
 import apiClient from "@/api/apiClient";
+import { UserProfile } from "./authService";
 
 export interface OrderItem {
   _id?: string;
@@ -29,7 +30,7 @@ export interface PaymentInfo {
 
 export interface Order {
   _id?: string;
-  user?: string;
+  user?: UserProfile;
   orderItems: OrderItem[];
   shippingAddress: ShippingAddress;
   paymentInfo: PaymentInfo;
@@ -37,9 +38,15 @@ export interface Order {
   deliveryFee?: number;
   totalAmount?: number;
   isPaid?: boolean;
-  orderStatus?: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | string;
-  createdAt?: string; 
-  updatedAt?: string; 
+  orderStatus?:
+    | "pending"
+    | "processing"
+    | "shipped"
+    | "delivered"
+    | "cancelled"
+    | string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CreateOrderPayload {
@@ -62,16 +69,31 @@ export interface CreateOrderResponse {
   data: CreateOrderData;
 }
 
+export interface UpdateDelivery {
+  deliveryFee: number;
+}
+
 export interface OrdersResponse {
   success: boolean;
+  count?: number;
   data: Order[];
 }
 
+export interface OrderStatusPayload{
+  orderStatus:   "processing" | "shipped" | "delivered";
+}
+
+export interface CancelOrderPayload{
+  cancellationReason: string;
+}
 export const createOrder = async (
-  payload: CreateOrderPayload
+  payload: CreateOrderPayload,
 ): Promise<CreateOrderResponse> => {
   try {
-    const response = await apiClient.post<CreateOrderResponse>("/api/orders", payload);
+    const response = await apiClient.post<CreateOrderResponse>(
+      "/api/orders",
+      payload,
+    );
     return response.data;
   } catch (error) {
     console.error("Error creating order:", error);
@@ -80,11 +102,36 @@ export const createOrder = async (
 };
 
 export const getMyOrders = async (): Promise<OrdersResponse> => {
-    try {
-        const response = await apiClient.get<OrdersResponse>("/api/orders/me");
-        return response.data;
-    } catch (error) {
-        console.error("Error fetching my orders:", error);
-        throw error;
-    }
+  try {
+    const response = await apiClient.get<OrdersResponse>("/api/orders/me");
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching my orders:", error);
+    throw error;
+  }
+};
+
+export const getAllOrders = async (): Promise<OrdersResponse> => {
+  try {
+    const response = await apiClient.get<OrdersResponse>("/api/orders");
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching all orders:", error);
+    throw error;
+  }
+};
+
+export const updateDeliveryFee = async (id: string | undefined, payload: UpdateDelivery) =>{
+  const response = await apiClient.put(`/api/orders/${id}/delivery-fee`, payload);
+  return response.data;
+}
+
+export const updateOrderStatus = async (id: string | undefined, payload: OrderStatusPayload)=>{
+  const response = await apiClient.put(`/api/orders/${id}/status`, payload);
+  return response.data;
+}
+
+export const cancelOrder = async (id: string, payload:CancelOrderPayload)=>{
+  const response = await apiClient.put(`/api/orders/${id}/cancel`, payload);
+  return response.data
 }
