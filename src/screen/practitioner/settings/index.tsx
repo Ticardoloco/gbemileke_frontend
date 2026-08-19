@@ -20,9 +20,7 @@ import {
   Edit3,
   X,
   Lock,
-  Trash2,
   KeyRound,
-  ShieldAlert,
   Eye,
   EyeOff
 } from "lucide-react";
@@ -45,17 +43,7 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { changePassword, deleteAccount, UserProfile } from "@/services/authService";
+import { changePassword, UserProfile } from "@/services/authService";
 
 export interface ProfileFormData {
   fullName: string;
@@ -296,25 +284,7 @@ export default function ProfilePage() {
     }
   };
 
-  // Delete Account Handler
-  const handleConfirmDeleteAccount = async () => {
-    try {
-      setIsDeletingAccount(true);
-      await deleteAccount(); 
-      localStorage.removeItem("token");
-      sessionStorage.clear();
-      setUser(null);
-      toast.success("Account deleted successfully.");
-      window.location.href = "/login";
-    } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to delete account.";
-      toast.error(errorMessage);
-    } finally {
-      setIsDeletingAccount(false);
-      setIsDeleteDialogOpen(false);
-    }
-  };
-
+  
   const displayName = currentFullName || actualUser?.fullName || "Patient";
   const userInitials = displayName
     .split(" ")
@@ -449,7 +419,7 @@ export default function ProfilePage() {
                 <div className="mt-4 w-full rounded-lg bg-secondary/50 p-3 border border-border text-left space-y-2">
                   <div className="flex justify-between items-center text-xs">
                     <span className="text-muted-foreground flex items-center gap-1.5">
-                      <CreditCard className="h-3.5 w-3.5 text-primary" /> Patient ID
+                      <CreditCard className="h-3.5 w-3.5 text-primary" /> ID
                     </span>
                     <span className="font-mono font-semibold text-foreground">
                       {actualUser?.id || "GBH-2026-8812"}
@@ -835,34 +805,6 @@ export default function ProfilePage() {
                 </form>
               </CardContent>
             </Card>
-
-            {/* Danger Zone / Delete Account Card */}
-            <Card className="border-destructive/30 bg-destructive/5 shadow-sm">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-base font-bold text-destructive flex items-center gap-2">
-                  <ShieldAlert className="h-4 w-4 text-destructive" /> Danger Zone
-                </CardTitle>
-                <CardDescription className="text-xs text-muted-foreground">
-                  Permanently remove your account and all associated patient records from the system.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Once your account is deleted, all of your medical records, personal data, and system access will be permanently purged. This action cannot be reverted.
-                </p>
-                <div className="flex justify-end pt-2">
-                  <Button
-                    variant="destructive"
-                    onClick={() => setIsDeleteDialogOpen(true)}
-                    disabled={isDeletingAccount}
-                    className="gap-2 font-semibold shadow-sm"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Delete Account
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Quick Security Sidebar */}
@@ -884,37 +826,6 @@ export default function ProfilePage() {
           </div>
         </div>
       )}
-
-      {/* Delete Account Confirmation Modal */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-destructive flex items-center gap-2">
-              <ShieldAlert className="h-5 w-5 text-destructive" /> Delete Account?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete your account? This action is permanent and all associated records, personal data, and system access will be permanently purged.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeletingAccount}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirmDeleteAccount}
-              disabled={isDeletingAccount}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {isDeletingAccount ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Deleting...
-                </>
-              ) : (
-                "Yes, Delete Account"
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }

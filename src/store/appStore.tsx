@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { clearAuthSession } from "@/api/apiClient";
@@ -51,21 +52,32 @@ export const useApp = create<AppState>()(
       setUser: (user: UserProfile | null) => set({ user }),
 
       // Fetch User Profile directly from API and sync store
-      fetchProfile: async () => {
-        set({ isLoadingProfile: true });
-        try {
-          const profile = await getCurrentUser();
-          // getCurrentUser may return the user directly or an object like { user }
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const user: UserProfile | null = profile && (profile as any).user ? (profile as any).user : (profile as any) || null;
-          set({ user, isLoadingProfile: false });
-          return user;
-        } catch (error) {
-          console.error("Failed to fetch user profile:", error);
-          set({ isLoadingProfile: false });
-          return null;
-        }
-      },
+fetchProfile: async () => {
+  set({ isLoadingProfile: true });
+  try {
+    const profile = await getCurrentUser();
+    
+    // getCurrentUser may return the user directly or an object like { user }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const user: UserProfile | null = profile && (profile as any).user 
+      ? (profile as any).user 
+      : (profile as any) || null;
+
+    set({ user, isLoadingProfile: false });
+    return user;
+  } catch (error: any) {
+    // Silently handle 401 Unauthorized (user is unauthenticated or logged out)
+    if (error?.response?.status === 401 || error?.status === 401) {
+      set({ user: null, isLoadingProfile: false });
+      return null;
+    }
+
+    // Log other unexpected errors (500, network issues, etc.)
+    console.error("Failed to fetch user profile:", error);
+    set({ isLoadingProfile: false });
+    return null;
+  }
+},
 
       // Logout: Reset state & clear auth session token
       logout: () => {

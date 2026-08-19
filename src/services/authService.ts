@@ -17,7 +17,7 @@ export interface LoginPayload {
 interface Address {
     city?: string;
     state?: string;
-     street?: string;
+    street?: string;
     zipCode?: string;
     country?: string;
 }

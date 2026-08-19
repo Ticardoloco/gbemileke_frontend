@@ -205,7 +205,7 @@ export default function BookPage() {
                   >
                     <div className="text-lg font-semibold">{t}</div>
                     <div className="mt-1 text-sm text-muted-foreground">
-                      {t === "In-person" ? "Visit our Ibadan center for a hands-on session." : "Join securely from anywhere over video."}
+                      {t === "In-person" ? "Visit our Ijegun center for a hands-on session." : "Join securely from anywhere over video."}
                     </div>
                   </button>
                 ))}

@@ -1,6 +1,13 @@
 import apiClient from "@/api/apiClient";
 import { PatientType } from "./userService";
 
+export type AppointmentStatus =
+  | "Pending"
+  | "Approved"
+  | "Cancelled"
+  | "Rejected"
+  | "Completed";
+
 export interface BookingPayload{
     specialty: string;
     date: string;
@@ -17,8 +24,13 @@ export interface AppointmentsResponse{
     type: "In-person" | "Virtual";
     symptoms: string;
     rejectionReason: string;
-    status: "Pending" | "Approved" | "Cancelled" | "Rejected" | "Completed";
+    status: AppointmentStatus;
     createdAt: string;
+}
+
+export interface UpdateStatusPayload {
+    status: AppointmentStatus;
+    rejectionReason: string;
 }
 
 export const postBooking = async (payload: BookingPayload) =>{
@@ -62,3 +74,7 @@ export const cancelAppointment = async (id: string): Promise<{message: string; a
     }
 }
 
+export const updateStatus = async (id: string, payload: UpdateStatusPayload): Promise<{ message: string; appointment: AppointmentsResponse }> =>{
+    const response = await apiClient.patch<{ message: string; appointment: AppointmentsResponse }>(`/api/bookings/${id}/status`, payload);
+    return response.data;
+}

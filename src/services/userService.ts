@@ -152,8 +152,16 @@ export const getAllUsers = async (): Promise<{users: UserProfile[]} | undefined>
     }
 }
 
-export const updateProfile = async(payload: UpdateProfilePayload): Promise<{user: UserProfile}> =>{
-    const response = await apiClient.put<{user: UserProfile}>("/api/user/profile", payload);
+export const updateProfile = async(payload: FormData | UpdateProfilePayload): Promise<{user: UserProfile}> =>{
+    const isFormData = payload instanceof FormData;
+    const response = await apiClient.put<{user: UserProfile}>("/api/user/profile", payload,
+        {
+            headers: isFormData
+                ? { "Content-Type": "multipart/form-data" }
+                : undefined,
+        }
+    );
+    
     return response.data;
 }
 

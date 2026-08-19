@@ -125,8 +125,11 @@ export default function AppointmentDetailPage() {
     }
   };
 
-  const isVirtual = appointment?.type?.toLowerCase().includes("virtual");
-  const isApproved = appointment?.status?.toLowerCase() === "approved";
+  const appType = appointment?.type?.toLowerCase() || "";
+  const isVirtual = appType.includes("virtual");
+  const isInPerson = appType.includes("in-person") || appType.includes("in person") || !isVirtual;
+  
+  const isApproved = appointment?.status?.toLowerCase() === "approved" || appointment?.status?.toLowerCase() === "confirmed";
   const isRejectedOrCancelled =
     appointment?.status?.toLowerCase() === "rejected" ||
     appointment?.status?.toLowerCase() === "cancelled";
@@ -269,12 +272,22 @@ export default function AppointmentDetailPage() {
               </div>
             </div>
 
-            {/* Virtual Appointment Info Banner - Only displays when Virtual AND Approved */}
+            {/* Virtual Appointment Info Banner - Displays when Virtual AND Approved */}
             {isVirtual && isApproved && (
               <div className="p-3.5 bg-emerald-50/80 border border-emerald-200/80 rounded-xl flex items-start gap-3 text-xs sm:text-sm text-emerald-900">
                 <Info className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
                 <p className="leading-relaxed">
                   <span className="font-semibold">Meeting Details:</span> The virtual meeting link will be sent to your email address or phone number prior to the scheduled time.
+                </p>
+              </div>
+            )}
+
+            {/* In-Person Appointment Location Banner - Displays when In-Person AND Approved */}
+            {isInPerson && isApproved && (
+              <div className="p-3.5 bg-emerald-50/80 border border-emerald-200/80 rounded-xl flex items-start gap-3 text-xs sm:text-sm text-emerald-900">
+                <MapPin className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+                <p className="leading-relaxed">
+                  <span className="font-semibold">Center Location:</span> You are expected to visit us at our facility located at <strong className="font-semibold">Ijegun, Lagos State</strong>. Please arrive 10–15 minutes prior to your scheduled time.
                 </p>
               </div>
             )}

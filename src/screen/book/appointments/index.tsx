@@ -1,9 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Calendar,
   Plus,
   Search,
   AlertCircle,
@@ -13,6 +13,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Inbox,
+  Video,
+  MapPin,
+  Info,
 } from "lucide-react";
 import { AppointmentsResponse, getAppointments } from "@/services/bookService";
 import BookingBox from "@/components/book/BookingBox";
@@ -84,14 +87,16 @@ export default function AppointmentsPage() {
     fetchAppointments();
   }, []);
 
+  // Reset page when search or status filter changes
   useEffect(() => {
-    const currentPageTrigger = ()=>{
+    const currentPageTrigger =()=>{
       setCurrentPage(1);
     }
-    currentPageTrigger();
+
+    currentPageTrigger()
   }, [statusFilter, searchQuery]);
 
-  const formatSpecialty = (specialty: string) => specialty.replace(/-/g, " ");
+  const formatSpecialty = (specialty: string) => (specialty ? specialty.replace(/-/g, " ") : "General");
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return "N/A";
@@ -106,7 +111,7 @@ export default function AppointmentsPage() {
   };
 
   const getStatusBadge = (status: string) => {
-    const key = status.toLowerCase();
+    const key = status?.toLowerCase() || "";
     const config = STATUS_CONFIG[key] || {
       label: status,
       bg: "bg-slate-100",
@@ -130,19 +135,20 @@ export default function AppointmentsPage() {
     return appointments.filter((app) => {
       const matchesStatus =
         statusFilter === "all" ||
-        app.status.toLowerCase() === statusFilter.toLowerCase();
+        app.status?.toLowerCase() === statusFilter.toLowerCase();
 
       const searchLower = searchQuery.toLowerCase();
       const matchesSearch =
-        app.specialty.toLowerCase().includes(searchLower) ||
+        app.specialty?.toLowerCase().includes(searchLower) ||
         (app.symptoms && app.symptoms.toLowerCase().includes(searchLower)) ||
-        app.patient.fullName.toLowerCase().includes(searchLower);
+        app.patient?.fullName?.toLowerCase().includes(searchLower);
 
       return matchesStatus && matchesSearch;
     });
   }, [appointments, statusFilter, searchQuery]);
 
   const totalPages = Math.ceil(filteredAppointments.length / ITEMS_PER_PAGE);
+
   const paginatedAppointments = useMemo(() => {
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
     return filteredAppointments.slice(startIndex, startIndex + ITEMS_PER_PAGE);
@@ -150,7 +156,24 @@ export default function AppointmentsPage() {
 
   const getStatusCount = (status: string) => {
     if (status === "all") return appointments.length;
-    return appointments.filter((a) => a.status.toLowerCase() === status).length;
+    return appointments.filter((a) => a.status?.toLowerCase() === status).length;
+  };
+
+  // Helper for generating page numbers with truncating ellipses
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    if (totalPages <= 5) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      if (currentPage <= 3) {
+        pages.push(1, 2, 3, 4, "...", totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1, "...", totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+      } else {
+        pages.push(1, "...", currentPage - 1, currentPage, currentPage + 1, "...", totalPages);
+      }
+    }
+    return pages;
   };
 
   return (
@@ -198,7 +221,7 @@ export default function AppointmentsPage() {
             />
           </div>
 
-          {/* Tab Filter Controls - Emerald Active Color */}
+          {/* Tab Filter Controls */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none border-t md:border-t-0 border-slate-100 pt-2.5 md:pt-0">
             {["all", "pending", "approved", "completed", "rejected", "cancelled"].map((status) => {
               const count = getStatusCount(status);
@@ -241,9 +264,16 @@ export default function AppointmentsPage() {
           <div className="space-y-6">
             <div className="space-y-4">
               {paginatedAppointments.map((appointment) => {
-                const rejectionText =
-                  appointment.rejectionReason 
-                const isRejected = appointment.status.toLowerCase() === "rejected";
+                const appType = appointment.type?.toLowerCase() || "";
+                const isVirtual = appType.includes("virtual");
+                const isInPerson = appType.includes("in-person") || appType.includes("in person") || !isVirtual;
+
+                const isApproved =
+                  appointment.status?.toLowerCase() === "approved" ||
+                  appointment.status?.toLowerCase() === "confirmed";
+
+                const isRejected = appointment.status?.toLowerCase() === "rejected";
+                const rejectionText = appointment.rejectionReason;
 
                 return (
                   <div
@@ -259,7 +289,27 @@ export default function AppointmentsPage() {
                       />
                     </div>
 
-                    {/* Integrated Rejection Banner */}
+                    {/* Virtual Banner Notice */}
+                    {isVirtual && isApproved && (
+                      <div className="bg-emerald-50/70 border-t border-emerald-100 p-3.5 px-5 flex items-start gap-2.5 text-xs text-emerald-900">
+                        <Info className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+                        <p className="leading-relaxed">
+                          <span className="font-semibold">Virtual Meeting:</span> Access link will be dispatched via email/SMS prior to your time slot.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* In-Person Location Banner */}
+                    {isInPerson && isApproved && (
+                      <div className="bg-emerald-50/70 border-t border-emerald-100 p-3.5 px-5 flex items-start gap-2.5 text-xs text-emerald-900">
+                        <MapPin className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" />
+                        <p className="leading-relaxed">
+                          <span className="font-semibold">Center Location:</span> Visit us at <strong className="font-semibold">Ijegun, Lagos State</strong>. Please arrive 10–15 mins early.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Rejection Banner */}
                     {isRejected && rejectionText && (
                       <div className="bg-rose-50/70 border-t border-rose-100 p-4 flex items-start gap-3">
                         <div className="p-1 bg-rose-100 rounded-lg text-rose-600 shrink-0 mt-0.5">
@@ -310,19 +360,25 @@ export default function AppointmentsPage() {
                   </button>
 
                   <div className="flex items-center gap-1">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                      <button
-                        key={page}
-                        onClick={() => setCurrentPage(page)}
-                        className={`w-7 h-7 rounded-lg text-xs font-semibold transition-all ${
-                          currentPage === page
-                            ? "bg-emerald-800 text-white shadow-sm"
-                            : "text-slate-600 hover:bg-slate-100"
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    ))}
+                    {getPageNumbers().map((page, idx) =>
+                      typeof page === "number" ? (
+                        <button
+                          key={idx}
+                          onClick={() => setCurrentPage(page)}
+                          className={`w-7 h-7 rounded-lg text-xs font-semibold transition-all ${
+                            currentPage === page
+                              ? "bg-emerald-800 text-white shadow-sm"
+                              : "text-slate-600 hover:bg-slate-100"
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      ) : (
+                        <span key={idx} className="px-1 text-xs text-slate-400">
+                          {page}
+                        </span>
+                      )
+                    )}
                   </div>
 
                   <button
