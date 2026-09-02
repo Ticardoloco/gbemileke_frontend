@@ -6,12 +6,13 @@ export type SpecialtySlug =
   | "infertility"
   | "labor-and-delivery"
   | "infection-treatment"
-  | "male-fertility-care";
+  | "male-fertility-care"
+  | "general-tradomedical-care";
 
 export interface Specialty {
   slug: SpecialtySlug;
   name: string;
-  category: "Maternal Health" | "Physical Therapy" | "Specialized Medicine";
+  category: "Maternal Health" | "Physical Therapy" | "Specialized Medicine" | "General Medicine";
   tagline: string;
   description: string;
   approach: string[];
@@ -137,6 +138,22 @@ export const specialties: Specialty[] = [
     "Herbal remedies tailored to boost sperm count, motility, and stamina",
     "Nutrition and immune-support guidance for cellular health",
     "Progress monitoring and follow-up consultations",
+  ],
+  icon: "🌿",
+},
+
+{
+  slug: "general-tradomedical-care",
+  name: "General Tradomedical Care",
+  category: "General Medicine",
+  tagline: "Root-cause healing, herbal remedies & traditional wellness",
+  description:
+    "A holistic treatment path drawing on traditional herbal medicine to address everyday ailments, body cleanses, chronic aches, blood circulation issues, and general vitality restoration.",
+  approach: [
+    "Traditional diagnosis & root-cause consultation",
+    "Customized herbal decoctions & tinctures",
+    "Whole-body detoxification & systemic cleansing",
+    "Lifestyle, diet, and wellness coaching",
   ],
   icon: "🌿",
 }

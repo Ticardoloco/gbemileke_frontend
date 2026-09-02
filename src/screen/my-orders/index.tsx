@@ -23,6 +23,7 @@ import {
   OrderItem,
   OrdersResponse,
 } from "@/services/orderService";
+import { toast } from "sonner";
 import FilterSearch from "@/components/my-order/FilterSearch";
 import OrderBox from "@/components/my-order/OrderBox";
 
@@ -127,7 +128,7 @@ export default function OrdersPage() {
   const handleCancelOrder = async () => {
     if (!selectedOrder?._id) return;
     if (!cancelReason.trim()) {
-      alert("Please provide a reason for cancellation.");
+      toast.error("Please provide a reason for cancellation.");
       return;
     }
 
@@ -151,9 +152,10 @@ export default function OrdersPage() {
 
       setShowCancelInput(false);
       setCancelReason("");
+      toast.success("Order cancelled successfully")
     } catch (error) {
       console.error("Failed to cancel order:", error);
-      alert("Could not cancel order. Please try again.");
+      toast.error("Could not cancel order. Please try again.");
     } finally {
       setIsCancelling(false);
     }

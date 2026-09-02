@@ -8,7 +8,8 @@ export type SpecialtySlug =
   | "infertility"
   | "labor-and-delivery"
   | "infection-treatment"
-  | "male-fertility-care";
+  | "male-fertility-care"
+  | "general-tradomedical-care";
 
 export interface SpecialitiesType {
   _id: string;

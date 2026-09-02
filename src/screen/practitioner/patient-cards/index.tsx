@@ -19,6 +19,7 @@ import Skeleton, { SkeletonTheme } from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import { getAllPatientCards, PatientCardDetails } from "@/services/userService";
 import Image from "next/image";
+import { getSpecialities, SpecialitiesType } from "@/services/specialitiesService";
 
 export default function PractitionerPatientCardsPage() {
   const [cards, setCards] = useState<PatientCardDetails[]>([]);
@@ -27,8 +28,17 @@ export default function PractitionerPatientCardsPage() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [specialtyFilter, setSpecialtyFilter] = useState("all");
+  const [specialties, setSpecialties] = useState<SpecialitiesType[] | undefined>([])
   const [paymentFilter, setPaymentFilter] = useState("all");
 
+  const fetchSpecialties = async ()=>{
+    try {
+      const res = await getSpecialities();
+      setSpecialties(res?.specialities || undefined)
+    } catch (error) {
+      console.error("Failed to fetch Specialties", error);
+    }
+  }
   const fetchCards = async () => {
     try {
       setLoading(true);
@@ -46,6 +56,7 @@ export default function PractitionerPatientCardsPage() {
   useEffect(() => {
     const fetchCardTrigger = () => {
       fetchCards();
+      fetchSpecialties();
     };
     fetchCardTrigger();
   }, []);
@@ -140,9 +151,9 @@ export default function PractitionerPatientCardsPage() {
               className="bg-transparent text-xs font-semibold text-slate-700 focus:outline-none capitalize"
             >
               <option value="all">All Specialties</option>
-              {uniqueSpecialties.map((spec) => (
-                <option key={spec} value={spec} className="capitalize">
-                  {formatSpecialty(spec)}
+              {specialties?.toReversed().map((spec) => (
+                <option key={spec.slug} value={spec.slug} className="capitalize">
+                  {formatSpecialty(spec.name)}
                 </option>
               ))}
             </select>

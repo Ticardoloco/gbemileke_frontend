@@ -23,6 +23,8 @@ interface Address {
 }
 
 export interface UserProfile {
+    isSuspended: boolean;
+    suspensionReason: string;
     _id?: string;
     id: string;
     fullName?: string;

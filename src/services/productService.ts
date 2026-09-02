@@ -1,4 +1,5 @@
 import apiClient from "@/api/apiClient";
+import { SpecialtySlug } from "./specialitiesService";
 
 export interface GetProductsFilter {
   category?: string | string[];
@@ -26,6 +27,16 @@ export interface GetProductsResponse {
   products: Product[];
 }
 
+export interface ProductPayload {
+  name: string;
+  category: SpecialtySlug;
+  price: number;
+  stock: number;
+  description: string;
+  usage: string;
+  image: string;
+}
+
 export const getProducts = async (
   filter?: GetProductsFilter
 ): Promise<GetProductsResponse> => {
@@ -49,3 +60,20 @@ export const getProducts = async (
     throw error;
   }
 };
+
+export const createProduct = async (payload: FormData | ProductPayload) =>{
+  const response = await apiClient.post('/api/products', payload, {
+    headers: payload instanceof FormData ? { "Content-Type": "multipart/form-data" } : undefined,});
+  return response.data;
+}
+
+export const updateProduct = async (id: string, payload: FormData |ProductPayload)=>{
+  const response = await apiClient.put(`/api/products/${id}`, payload, {
+    headers: payload instanceof FormData ? { "Content-Type": "multipart/form-data" } : undefined,});
+  return response.data;
+}
+
+export const deleteProduct = async (id: string) =>{
+  const response = await apiClient.delete(`/api/products/${id}`);
+  return response.data;
+}

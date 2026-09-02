@@ -1,446 +1,402 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import Link from "next/link";
-import { useMemo, useState } from "react";
-import { toast } from "sonner";
-import { Leaf, Users, CalendarCheck, PackageSearch, Wallet, Home, Plus, Trash2, Pencil, Search } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useApp } from "@/store/appStore";
-import { formatNaira, specialties, type MockAppointment, type Product, type SpecialtySlug } from "@/lib/mock-data";
+import React, { useEffect, useState, useMemo } from "react";
+import {
+  CreditCard,
+  ShoppingBag,
+  Stethoscope,
+  Wallet,
+  TrendingUp,
+} from "lucide-react";
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+} from "recharts";
+import { getAllPatientCards, PatientCardDetails } from "@/services/userService";
+import { getAllOrders, Order } from "@/services/orderService";
 
-export default function AdminDashboard() {
-  const app = useApp();
-  const [tab, setTab] = useState("overview");
+export default function AdminDashboardPage() {
+  const [timeframe, setTimeframe] = useState<"7d" | "30d" | "1y">("1y");
+  const [cards, setCards] = useState<PatientCardDetails[]>([]);
+  const [productOrders, setProductOrders] = useState<Order[]>([]);
+  const [cardLoading, setCardLoading] = useState<boolean>(true);
+  const [productOrderLoading, setProductOrderLoading] = useState<boolean>(true);
 
-  const stats = useMemo(() => {
-    const d = new Date();
-    const offset = d.getTimezoneOffset();
-    const local = new Date(d.getTime() - offset * 60 * 1000);
-    const today = local.toISOString().split("T")[0];
+  // Format currency helper for Nigerian Naira
+  const formatNaira = (amount: number) => {
+    return new Intl.NumberFormat("en-NG", {
+      style: "currency",
+      currency: "NGN",
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
 
-    return {
-      patients: app.patients.length,
-      today: app.appointments.filter((a) => a.date >= today && a.date <= today).length || app.appointments.filter((a) => a.status === "Approved").length,
-      pendingOrders: app.orders.filter((o) => o.status === "Pending").length,
-      revenue: app.orders.reduce((s, o) => s + o.total, 0),
+  useEffect(() => {
+    const fetchCards = async () => {
+      try {
+        setCardLoading(true);
+        const res = await getAllPatientCards();
+        setCards(res.cards || []);
+      } catch (error) {
+        console.error("Failed to fetch Cards", error);
+      } finally {
+        setCardLoading(false);
+      }
     };
-  }, [app.patients, app.appointments, app.orders]);
+    fetchCards();
+  }, []);
+
+  useEffect(() => {
+    const fetchProductOrders = async () => {
+      try {
+        setProductOrderLoading(true);
+        const res = await getAllOrders();
+        setProductOrders(res.data || []);
+      } catch (error) {
+        console.error("Failed to fetch Orders", error);
+      } finally {
+        setProductOrderLoading(false);
+      }
+    };
+    fetchProductOrders();
+  }, []);
+
+  // Check paid status for patient registration cards & store orders
+  const isPaidRecord = (item: any) => {
+    return (
+      item?.paid === true ||
+      item?.isPaid === true ||
+      item?.paymentStatus?.toLowerCase() === "paid" ||
+      item?.status?.toLowerCase() === "paid"
+    );
+  };
+
+  // Check explicitly for "pending" status
+  const isPendingRecord = (item: any) => {
+    return (
+      item?.status?.toLowerCase() === "pending" ||
+      item?.orderStatus?.toLowerCase() === "pending" ||
+      item?.paymentStatus?.toLowerCase() === "pending"
+    );
+  };
+
+  // Filter paid patient registration cards and product orders
+  const paidCards = useMemo(() => cards.filter(isPaidRecord), [cards]);
+  const paidOrders = useMemo(() => productOrders.filter(isPaidRecord), [productOrders]);
+
+  // Filter explicitly pending items
+  const pendingOrders = useMemo(() => productOrders.filter(isPendingRecord), [productOrders]);
+  const pendingCards = useMemo(() => cards.filter(isPendingRecord), [cards]);
+
+  // 1. Total Patient Card Registration Revenue
+  const totalCardRevenue = useMemo(() => {
+    return paidCards.reduce((sum, card: any) => sum + (card.cardFee || 0), 0);
+  }, [paidCards]);
+
+  // 2. Total Store Product Sales Revenue
+  const totalProductRevenue = useMemo(() => {
+    return paidOrders.reduce((sum, order: any) => sum + (order.totalAmount || 0), 0);
+  }, [paidOrders]);
+
+  // 3. Total Treatment Revenue dynamically computed from card.billing
+  const totalTreatmentRevenue = useMemo(() => {
+    return cards.reduce((sum, card: any) => {
+      const billing = card.billing;
+      if (!billing) return sum;
+
+      // Prefer explicit amount paid from billing summary or fall back to paymentHistory entries
+      if (typeof billing.amountPaid === "number" && billing.amountPaid > 0) {
+        return sum + billing.amountPaid;
+      }
+
+      if (Array.isArray(billing.paymentHistory)) {
+        const historyTotal = billing.paymentHistory.reduce(
+          (hSum: number, payment: any) => hSum + (payment.amount || 0),
+          0
+        );
+        return sum + historyTotal;
+      }
+
+      return sum;
+    }, 0);
+  }, [cards]);
+
+  // Grand Total Revenue across all streams
+  const grandTotalRevenue = totalCardRevenue + totalProductRevenue + totalTreatmentRevenue;
+
+  // Monthly breakdown of ALL revenue streams for current year
+  const revenueData = useMemo(() => {
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const currentYear = new Date().getFullYear();
+
+    const monthlyMap: Record<
+      string,
+      { month: string; cards: number; products: number; treatments: number; total: number }
+    > = {};
+
+    months.forEach((m) => {
+      monthlyMap[m] = { month: m, cards: 0, products: 0, treatments: 0, total: 0 };
+    });
+
+    // Aggregate Paid Patient Card Registration Fees
+    paidCards.forEach((card: any) => {
+      const date = new Date(card.createdAt || card.issueDate);
+      if (date.getFullYear() === currentYear) {
+        const monthName = months[date.getMonth()];
+        monthlyMap[monthName].cards += card.cardFee || 0;
+        monthlyMap[monthName].total += card.cardFee || 0;
+      }
+    });
+
+    // Aggregate Store Product Orders
+    paidOrders.forEach((order: any) => {
+      const date = new Date(order.createdAt);
+      if (date.getFullYear() === currentYear) {
+        const monthName = months[date.getMonth()];
+        monthlyMap[monthName].products += order.totalAmount || 0;
+        monthlyMap[monthName].total += order.totalAmount || 0;
+      }
+    });
+
+    // Aggregate Treatment Payments from Card Billing
+    cards.forEach((card: any) => {
+      const billing = card.billing;
+      if (!billing) return;
+
+      if (Array.isArray(billing.paymentHistory) && billing.paymentHistory.length > 0) {
+        billing.paymentHistory.forEach((payment: any) => {
+          const date = new Date(payment.date || card.createdAt);
+          if (date.getFullYear() === currentYear) {
+            const monthName = months[date.getMonth()];
+            monthlyMap[monthName].treatments += payment.amount || 0;
+            monthlyMap[monthName].total += payment.amount || 0;
+          }
+        });
+      } else if (typeof billing.amountPaid === "number" && billing.amountPaid > 0) {
+        const date = new Date(card.updatedAt || card.createdAt);
+        if (date.getFullYear() === currentYear) {
+          const monthName = months[date.getMonth()];
+          monthlyMap[monthName].treatments += billing.amountPaid;
+          monthlyMap[monthName].total += billing.amountPaid;
+        }
+      }
+    });
+
+    return Object.values(monthlyMap);
+  }, [cards, paidCards, paidOrders]);
+
+  const isLoading = cardLoading || productOrderLoading;
 
   return (
-    <div className="min-h-screen bg-secondary/30">
-      <header className="border-b border-border bg-card">
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
-          <Link href="/admin" className="flex items-center gap-2">
-            <span className="grid h-8 w-8 place-items-center rounded-md bg-primary text-primary-foreground">
-              <Leaf className="h-4 w-4" />
+    <div className="w-full max-w-7xl mx-auto space-y-6 sm:space-y-8 p-4 sm:p-6 pb-10">
+      {/* Top Banner */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900 text-white p-5 sm:p-6 rounded-2xl shadow-xs border border-slate-800">
+        <div className="space-y-1">
+          <h2 className="text-lg sm:text-xl font-bold tracking-tight">Financial & Operational Analytics</h2>
+          <p className="text-xs sm:text-sm text-slate-400">
+            Real-time verified revenue breakdown from paid cards, herbal products, and clinic treatments.
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5 bg-slate-800 p-1 rounded-xl border border-slate-700 self-start md:self-auto overflow-x-auto max-w-full">
+          {(["7d", "30d", "1y"] as const).map((period) => (
+            <button
+              key={period}
+              onClick={() => setTimeframe(period)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold uppercase transition-all whitespace-nowrap ${
+                timeframe === period
+                  ? "bg-emerald-600 text-white shadow-xs"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              {period}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Revenue Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        {/* Overall Revenue */}
+        <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">
+              Overall Paid Revenue
             </span>
-            <div>
-              <div className="text-sm font-semibold leading-none">Gbemileke · Staff</div>
-              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Practitioner Dashboard</div>
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+              <Wallet className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-          </Link>
-          <Link href="/">
-            <Button variant="ghost" size="sm">
-              <Home className="mr-2 h-4 w-4" /> Public site
-            </Button>
-          </Link>
-        </div>
-      </header>
-
-      <div className="mx-auto max-w-7xl px-4 py-8">
-        <h1 className="font-display text-3xl font-semibold">Clinic overview</h1>
-        <p className="text-sm text-muted-foreground">Operations, patients, and pharmacy — all in one place.</p>
-
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Stat icon={<Users className="h-4 w-4" />} label="Total patients" value={stats.patients} />
-          <Stat icon={<CalendarCheck className="h-4 w-4" />} label="Today's appointments" value={stats.today} />
-          <Stat icon={<PackageSearch className="h-4 w-4" />} label="Pending orders" value={stats.pendingOrders} />
-          <Stat icon={<Wallet className="h-4 w-4" />} label="Monthly revenue" value={formatNaira(stats.revenue)} />
+          </div>
+          <div className="mt-3">
+            <p className="text-xl sm:text-2xl font-black text-slate-900 truncate">
+              {isLoading ? "Calculating..." : formatNaira(grandTotalRevenue)}
+            </p>
+            <div className="flex items-center gap-1.5 text-xs text-emerald-600 font-semibold mt-1">
+              <TrendingUp className="w-3.5 h-3.5" />
+              <span>Verified Settled Payments</span>
+            </div>
+          </div>
         </div>
 
-        <Tabs value={tab} onValueChange={setTab} className="mt-8 flex flex-col">
-          <TabsList className="flex flex-wrap">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="appointments">Appointments</TabsTrigger>
-            <TabsTrigger value="patients">Patients (EHR)</TabsTrigger>
-            <TabsTrigger value="inventory">Herbal Inventory</TabsTrigger>
-            <TabsTrigger value="orders">Orders</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview">
-            <div className="grid gap-4 md:grid-cols-2">
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="font-display text-lg font-semibold">Upcoming appointments</h3>
-                  <div className="mt-4 space-y-2">
-                    {app.appointments.slice(0, 5).map((a) => (
-                      <div key={a.id} className="flex items-center justify-between rounded-md border border-border p-3 text-sm">
-                        <div>
-                          <div className="font-semibold">{a.patient}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {specialties.find((s) => s.slug === a.specialty)?.name} · {a.date} {a.time}
-                          </div>
-                        </div>
-                        <Badge variant="secondary">{a.status}</Badge>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="font-display text-lg font-semibold">Low stock alerts</h3>
-                  <div className="mt-4 space-y-2">
-                    {app.products.filter((p) => p.stock < 25).map((p) => (
-                      <div key={p.id} className="flex items-center justify-between rounded-md border border-border p-3 text-sm">
-                        <div>
-                          <b>{p.name}</b> <span className="text-muted-foreground">· {p.stock} in stock</span>
-                        </div>
-                        <Button size="sm" variant="outline" onClick={() => setTab("inventory")}>
-                          Restock
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+        {/* Patient Cards */}
+        <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">
+              Patient Cards
+            </span>
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center shrink-0">
+              <CreditCard className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-          </TabsContent>
+          </div>
+          <div className="mt-3">
+            <p className="text-xl sm:text-2xl font-bold text-slate-900 truncate">
+              {cardLoading ? "Loading..." : formatNaira(totalCardRevenue)}
+            </p>
+            <p className="text-xs text-slate-500 font-medium mt-1 truncate">
+              {paidCards.length} Paid Cards ({pendingCards.length} Pending)
+            </p>
+          </div>
+        </div>
 
-          <TabsContent value="appointments"><AppointmentsPanel /></TabsContent>
-          <TabsContent value="patients"><PatientsPanel /></TabsContent>
-          <TabsContent value="inventory"><InventoryPanel /></TabsContent>
-          <TabsContent value="orders"><OrdersPanel /></TabsContent>
-        </Tabs>
+        {/* Products Sold */}
+        <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">
+              Products Sold
+            </span>
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center shrink-0">
+              <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <p className="text-xl sm:text-2xl font-bold text-slate-900 truncate">
+              {productOrderLoading ? "Loading..." : formatNaira(totalProductRevenue)}
+            </p>
+            <p className="text-xs text-slate-500 font-medium mt-1 truncate">
+              {paidOrders.length} Paid Orders ({pendingOrders.length} Pending)
+            </p>
+          </div>
+        </div>
+
+        {/* Treatment Sessions */}
+        <div className="p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-slate-500">
+              Treatment Sessions
+            </span>
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+              <Stethoscope className="w-4 h-4 sm:w-5 sm:h-5" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <p className="text-xl sm:text-2xl font-bold text-slate-900 truncate">
+              {cardLoading ? "Loading..." : formatNaira(totalTreatmentRevenue)}
+            </p>
+            <p className="text-xs text-slate-500 font-medium mt-1 truncate">
+              Therapy & Consultation Billing
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Analytics Chart Container */}
+      <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="text-base sm:text-lg font-bold text-slate-900">Paid Revenue Streams</h3>
+            <p className="text-xs text-slate-500">
+              Settled monthly financial growth for the current year
+            </p>
+          </div>
+          <div className="flex items-center gap-3 text-xs font-semibold flex-wrap">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+              <span className="text-slate-600">Cards</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-purple-500" />
+              <span className="text-slate-600">Products</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+              <span className="text-slate-600">Treatments</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Responsive Chart Container */}
+        <div className="w-full h-64 sm:h-80 md:h-96 min-w-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={revenueData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <defs>
+                <linearGradient id="cardGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="prodGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#a855f7" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="treatGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4} />
+                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fill: "#64748b", fontSize: 11 }} />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                tick={{ fill: "#64748b", fontSize: 11 }}
+                tickFormatter={(val) => (val >= 1000 ? `₦${val / 1000}k` : `₦${val}`)}
+              />
+              <Tooltip
+                formatter={(value: any) => [formatNaira(Number(value)), "Revenue"]}
+                contentStyle={{
+                  backgroundColor: "#0f172a",
+                  borderColor: "#334155",
+                  borderRadius: "12px",
+                  color: "#fff",
+                  fontSize: "12px",
+                }}
+              />
+              <Area
+                type="monotone"
+                dataKey="cards"
+                name="Patient Cards"
+                stroke="#3b82f6"
+                strokeWidth={2}
+                fillOpacity={1}
+                fill="url(#cardGrad)"
+              />
+              <Area
+                type="monotone"
+                dataKey="products"
+                name="Products"
+                stroke="#a855f7"
+                strokeWidth={2}
+                fillOpacity={1}
+                fill="url(#prodGrad)"
+              />
+              <Area
+                type="monotone"
+                dataKey="treatments"
+                name="Treatments"
+                stroke="#f59e0b"
+                strokeWidth={2}
+                fillOpacity={1}
+                fill="url(#treatGrad)"
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
       </div>
     </div>
-  );
-}
-
-function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: React.ReactNode }) {
-  return (
-    <Card>
-      <CardContent className="p-5">
-        <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
-          <span className="grid h-6 w-6 place-items-center rounded-md bg-primary/10 text-primary">{icon}</span>
-          {label}
-        </div>
-        <div className="mt-3 font-display text-3xl font-semibold">{value}</div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function AppointmentsPanel() {
-  const { appointments, updateAppointment } = useApp();
-  const setStatus = (a: MockAppointment, status: MockAppointment["status"]) => {
-    updateAppointment(a.id, { status });
-    toast.success(`${a.id} marked ${status}`);
-  };
-  return (
-    <Card>
-      <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>Patient</TableHead>
-              <TableHead>Department</TableHead>
-              <TableHead>When</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {appointments.map((a) => (
-              <TableRow key={a.id}>
-                <TableCell className="font-mono text-xs">{a.id}</TableCell>
-                <TableCell>{a.patient}</TableCell>
-                <TableCell>{specialties.find((s) => s.slug === a.specialty)?.name}</TableCell>
-                <TableCell>{a.date} · {a.time}</TableCell>
-                <TableCell>{a.type}</TableCell>
-                <TableCell><Badge variant="secondary">{a.status}</Badge></TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-1">
-                    <Button size="sm" variant="outline" onClick={() => setStatus(a, "Approved")}>Approve</Button>
-                    <Button size="sm" variant="outline" onClick={() => {
-                      const d = prompt("New date (YYYY-MM-DD)", a.date);
-                      const t = prompt("New time (HH:MM)", a.time);
-                      if (d && t) { updateAppointment(a.id, { date: d, time: t }); toast.success("Rescheduled"); }
-                    }}>Reschedule</Button>
-                    <Button size="sm" variant="outline" onClick={() => setStatus(a, "Completed")}>Complete</Button>
-                    <Button size="sm" variant="destructive" onClick={() => setStatus(a, "Cancelled")}>Cancel</Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
-  );
-}
-
-function PatientsPanel() {
-  const { patients, addPatientNote, addPatientRx, products } = useApp();
-  const [q, setQ] = useState("");
-  const [openId, setOpenId] = useState<string | null>(null);
-  const [note, setNote] = useState("");
-  const [rxProduct, setRxProduct] = useState<string | null>(null);
-  const [rxDosage, setRxDosage] = useState("");
-
-  const list = patients.filter((p) => p.name.toLowerCase().includes(q.toLowerCase()) || p.id.toLowerCase().includes(q.toLowerCase()));
-  const open = patients.find((p) => p.id === openId) ?? null;
-
-  return (
-    <div className="grid gap-4 md:grid-cols-[320px_1fr]">
-      <Card>
-        <CardContent className="p-4">
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input className="pl-8" placeholder="Search patients..." value={q} onChange={(e) => setQ(e.target.value)} />
-          </div>
-          <div className="mt-3 max-h-130 space-y-1 overflow-y-auto">
-            {list.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => setOpenId(p.id)}
-                className={`w-full rounded-md border p-3 text-left text-sm transition-colors ${
-                  openId === p.id ? "border-primary bg-primary/5" : "border-border hover:bg-secondary"
-                }`}
-              >
-                <div className="font-semibold">{p.name}</div>
-                <div className="text-xs text-muted-foreground">{p.id} · {p.age}{p.gender} · {specialties.find((s) => s.slug === p.specialty)?.name}</div>
-              </button>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {open ? (
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h2 className="font-display text-2xl font-semibold">{open.name}</h2>
-                <div className="text-sm text-muted-foreground">{open.id} · {open.age}{open.gender} · {open.phone}</div>
-                <div className="mt-1 text-xs font-semibold uppercase tracking-widest text-primary">
-                  {specialties.find((s) => s.slug === open.specialty)?.name}
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 grid gap-4 md:grid-cols-2">
-              <div className="rounded-lg border border-border p-4">
-                <h3 className="font-semibold">Add consultation note</h3>
-                <Textarea rows={4} maxLength={800} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Progress, observations, next steps..." className="mt-2" />
-                <Button className="mt-3 w-full" onClick={() => {
-                  if (note.trim().length < 5) { toast.error("Note is too short."); return; }
-                  addPatientNote(open.id, note.trim(), "Dr. Ogunleye");
-                  setNote(""); toast.success("Note saved");
-                }}>Save note</Button>
-              </div>
-              <div className="rounded-lg border border-border p-4">
-                <h3 className="font-semibold">Issue prescription</h3>
-                <div className="mt-2 grid gap-2">
-                  <Select value={rxProduct} onValueChange={setRxProduct}>
-                    <SelectTrigger><SelectValue placeholder="Choose herbal product" /></SelectTrigger>
-                    <SelectContent>
-                      {products.map((p) => <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <Input placeholder="Dosage e.g. 1 tbsp x2 daily" maxLength={80} value={rxDosage} onChange={(e) => setRxDosage(e.target.value)} />
-                  <Button onClick={() => {
-                    if (!rxProduct || !rxDosage.trim()) { toast.error("Pick a product and dosage."); return; }
-                    addPatientRx(open.id, rxProduct, rxDosage.trim());
-                    setRxProduct(""); setRxDosage(""); toast.success("Prescription added");
-                  }}>Add prescription</Button>
-                </div>
-              </div>
-            </div>
-
-            <h3 className="mt-8 font-display text-lg font-semibold">Medical history</h3>
-            <ol className="relative mt-4 ml-3 space-y-5 border-l border-border pl-5">
-              {open.history.map((h, i) => (
-                <li key={i}>
-                  <span className="absolute -left-1.75 mt-1 grid h-3 w-3 place-items-center rounded-full bg-primary" />
-                  <div className="text-xs uppercase tracking-widest text-muted-foreground">{h.date} · {h.author}</div>
-                  <p className="mt-1 text-sm">{h.note}</p>
-                </li>
-              ))}
-            </ol>
-
-            <h3 className="mt-8 font-display text-lg font-semibold">Prescriptions</h3>
-            <div className="mt-3 grid gap-2">
-              {open.prescriptions.map((r, i) => (
-                <div key={i} className="flex items-center justify-between rounded-md border border-border p-3 text-sm">
-                  <div><b>{r.product}</b> · <span className="text-muted-foreground">{r.dosage}</span></div>
-                  <div className="text-xs text-muted-foreground">{r.date}</div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <Card><CardContent className="p-10 text-center text-muted-foreground">Select a patient to view their record.</CardContent></Card>
-      )}
-    </div>
-  );
-}
-
-function InventoryPanel() {
-  const { products, addProduct, updateProduct, deleteProduct } = useApp();
-  const [editing, setEditing] = useState<Product | null>(null);
-  const [creating, setCreating] = useState(false);
-
-  return (
-    <Card>
-      <CardContent className="p-0">
-        <div className="flex items-center justify-between p-4">
-          <h3 className="font-display text-lg font-semibold">Herbal products</h3>
-          <Button onClick={() => setCreating(true)}><Plus className="mr-2 h-4 w-4" /> Add product</Button>
-        </div>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Product</TableHead>
-              <TableHead>Department</TableHead>
-              <TableHead>Stock</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {products.map((p) => (
-              <TableRow key={p.id}>
-                <TableCell>
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{p.emoji}</span>
-                    <div>
-                      <div className="font-semibold">{p.name}</div>
-                      <div className="text-xs text-muted-foreground">{p.description}</div>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>{specialties.find((s) => s.slug === p.category)?.name}</TableCell>
-                <TableCell className={p.stock < 25 ? "text-destructive font-semibold" : ""}>{p.stock}</TableCell>
-                <TableCell>{formatNaira(p.price)}</TableCell>
-                <TableCell className="text-right">
-                  <Button size="sm" variant="outline" onClick={() => setEditing(p)}><Pencil className="h-3.5 w-3.5" /></Button>
-                  <Button size="sm" variant="destructive" className="ml-2" onClick={() => {
-                    if (confirm(`Delete ${p.name}?`)) { deleteProduct(p.id); toast.success("Deleted"); }
-                  }}><Trash2 className="h-3.5 w-3.5" /></Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-
-        {(editing || creating) && (
-          <ProductDialog
-            initial={editing ?? undefined}
-            onClose={() => { setEditing(null); setCreating(false); }}
-            onSave={(data) => {
-              if (editing) { updateProduct(editing.id, data); toast.success("Updated"); }
-              else { addProduct(data as Omit<Product, "id">); toast.success("Added"); }
-              setEditing(null); setCreating(false);
-            }}
-          />
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function ProductDialog({ initial, onClose, onSave }: { initial?: Product; onClose: () => void; onSave: (p: Omit<Product, "id">) => void }) {
-  const [name, setName] = useState(initial?.name ?? "");
-  const [category, setCategory] = useState<SpecialtySlug>(initial?.category ?? "anti-natal");
-  const [price, setPrice] = useState(initial?.price ?? 0);
-  const [stock, setStock] = useState(initial?.stock ?? 0);
-  const [description, setDescription] = useState(initial?.description ?? "");
-  const [usage, setUsage] = useState(initial?.usage ?? "");
-  const [emoji, setEmoji] = useState(initial?.emoji ?? "🌿");
-
-  return (
-    <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent>
-        <DialogHeader><DialogTitle>{initial ? "Edit product" : "Add product"}</DialogTitle></DialogHeader>
-        <div className="grid gap-3">
-          <div><Label>Name</Label><Input maxLength={80} value={name} onChange={(e) => setName(e.target.value)} /></div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Department</Label>
-              <Select value={category} onValueChange={(v) => setCategory(v as SpecialtySlug)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{specialties.map((s) => <SelectItem key={s.slug} value={s.slug}>{s.name}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div><Label>Emoji</Label><Input maxLength={4} value={emoji} onChange={(e) => setEmoji(e.target.value)} /></div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div><Label>Price (₦)</Label><Input type="number" value={price} onChange={(e) => setPrice(Number(e.target.value))} /></div>
-            <div><Label>Stock</Label><Input type="number" value={stock} onChange={(e) => setStock(Number(e.target.value))} /></div>
-          </div>
-          <div><Label>Description</Label><Textarea rows={2} maxLength={200} value={description} onChange={(e) => setDescription(e.target.value)} /></div>
-          <div><Label>Usage</Label><Textarea rows={2} maxLength={200} value={usage} onChange={(e) => setUsage(e.target.value)} /></div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => {
-            if (!name.trim() || price < 0 || stock < 0) { toast.error("Please complete all fields."); return; }
-            onSave({ name: name.trim(), category, price, stock, description: description.trim(), usage: usage.trim(), emoji });
-          }}>Save</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function OrdersPanel() {
-  const { orders, updateOrder } = useApp();
-  return (
-    <Card>
-      <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Order</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>Items</TableHead>
-              <TableHead>Total</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {orders.map((o) => (
-              <TableRow key={o.id}>
-                <TableCell className="font-mono text-xs">{o.id}</TableCell>
-                <TableCell>{o.customer}</TableCell>
-                <TableCell className="max-w-xs text-sm text-muted-foreground">{o.items}</TableCell>
-                <TableCell>{formatNaira(o.total)}</TableCell>
-                <TableCell>{o.date}</TableCell>
-                <TableCell><Badge variant="secondary">{o.status}</Badge></TableCell>
-                <TableCell className="text-right">
-                  <Button size="sm" variant="outline" onClick={() => { updateOrder(o.id, { status: "Fulfilled" }); toast.success("Marked fulfilled"); }}>Fulfill</Button>
-                  <Button size="sm" variant="outline" className="ml-2" onClick={() => { updateOrder(o.id, { status: "Shipped" }); toast.success("Marked shipped"); }}>Ship</Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
   );
 }

@@ -135,3 +135,8 @@ export const cancelOrder = async (id: string, payload:CancelOrderPayload)=>{
   const response = await apiClient.put(`/api/orders/${id}/cancel`, payload);
   return response.data
 }
+
+export const deleteOrder = async (id: string) =>{
+  const response = await apiClient.delete(`/api/orders/${id}`);
+  return response.data;
+}

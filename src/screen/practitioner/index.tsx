@@ -68,7 +68,9 @@ export default function PractitionerDashboard() {
     const fetchUsers = async () => {
       try {
         const res = await getAllUsers();
-        const data = res?.users;
+        const data = res?.users || [];
+        
+        console.log("users", data);
         setUsers(data);
       } catch (error) {
         console.log("Failed to load Patient users", error);
@@ -76,6 +78,8 @@ export default function PractitionerDashboard() {
     };
     fetchUsers();
   }, []);
+
+
 
   useEffect(() => {
     if (isFetched.current) return;
@@ -97,6 +101,8 @@ export default function PractitionerDashboard() {
   const patientUsers = users?.filter((user) => user.role === "patient");
 
   const patientCount = patientUsers?.length;
+  console.log("count", patientCount);
+  
 
   const date = new Date();
   const formattedDate = date.toISOString().split("T")[0];

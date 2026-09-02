@@ -35,7 +35,7 @@ interface HistoryType{
     _id: string;
 }
 
-interface PrescriptionsType{
+ export interface PrescriptionsType{
     date: Date;
     product: string;
     dosage: string;
@@ -138,6 +138,10 @@ export interface BillingPaymentPayload{
     reference: string;
 }
 
+export interface SuspendPayload {
+    isSuspended: boolean;
+    reason: string;
+}
 
 export const getCurrentUser = async ():Promise<{user:UserProfile}> =>{
     const response = await apiClient.get<{user:UserProfile}>("/api/user/profile");
@@ -150,6 +154,16 @@ export const getAllUsers = async (): Promise<{users: UserProfile[]} | undefined>
     } catch (error) {
         console.log("Failed to fetch users", error);  
     }
+}
+
+export const suspendUsers = async (id:string, payload: SuspendPayload)=>{
+ const response = await apiClient.patch(`/api/user/${id}/suspend`, payload);
+ return response.data
+}
+
+export const switchUserRole = async (id:string, role: string)=>{
+    const response = await apiClient.patch(`/api/user/${id}/role`, {role});
+    return response.data
 }
 
 export const updateProfile = async(payload: FormData | UpdateProfilePayload): Promise<{user: UserProfile}> =>{
@@ -181,6 +195,11 @@ export const getAllPatientCards = async (): Promise<PatientCardResponse> =>{
 export const getPatientCardById = async (id: string): Promise<{card: PatientCardDetails}> =>{
     const response = await apiClient.get<{card: PatientCardDetails}>(`/api/patient-cards/${id}`);
     return response.data
+}
+
+export const deletePatientCard = async (id: string)=>{
+    const response = await apiClient.delete(`/api/patient-cards/${id}`);
+    return response.data;
 }
 
 export const postMedicalHistory = async (id: string, payload: MedicalHistoryPayload) =>{
@@ -228,6 +247,11 @@ export const updateBillingSessions = async (id: string, sessionId: string, paylo
 export const postBillingPayment = async (id: string, payload: BillingPaymentPayload) =>{
     const response = await apiClient.post(`/api/patient-cards/${id}/billing/payments`, payload)
 
+    return response.data
+}
+
+export const closeTreatmentSection = async (id: string, sessionId: string)=>{
+    const response = await apiClient.patch(`/api/patient-cards/${id}/billing/sessions/${sessionId}/close`)
     return response.data
 }
 
