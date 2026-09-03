@@ -1,12 +1,11 @@
 import Shop from '@/screen/shop'
-import React from 'react'
-
+import {Suspense} from 'react'
 
 const page = () => {
   return (
-     <>
+     <Suspense>
         <Shop/>
-    </>
+    </Suspense>
   )
 }
 

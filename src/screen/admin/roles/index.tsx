@@ -152,7 +152,7 @@ export default function AdminRoleManagementPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredUsers.map((user, index) => {
+                {filteredUsers.toReversed().map((user, index) => {
                   const userId = user._id || (user as any).id;
                   const rowKey = userId || `user-row-${index}`;
                   const isProcessing = actionLoadingId === userId;

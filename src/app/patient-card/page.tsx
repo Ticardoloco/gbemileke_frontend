@@ -1,11 +1,11 @@
 import RegisterPatientCardPage from '@/screen/patient-card'
-import React from 'react'
+import {Suspense} from 'react'
 
 const page = () => {
   return (
-    <div>
+    <Suspense>
         <RegisterPatientCardPage/>
-    </div>
+    </Suspense>
   )
 }
 

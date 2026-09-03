@@ -1,11 +1,10 @@
 import BookPage from '@/screen/book'
-import React from 'react'
-
+import {Suspense} from 'react'
 const page = () => {
   return (
-     <>
+     <Suspense>
         <BookPage/>
-    </>
+    </Suspense>
   )
 }
 

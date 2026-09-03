@@ -104,6 +104,24 @@ export const changePassword = async (currentPassword: string, newPassword: strin
     }
 }
 
+export const forgotPassword = async (email: string) =>{
+    try {
+        const response = await apiClient.post('/api/user/forgot-password', {email})
+        return response.data
+    } catch (error) {
+        throw handleApiError(error, "Failed to send password reset email");
+    }
+}
+
+export const resetPassword = async (token: string, password: string) =>{
+    try {
+        const response = await apiClient.post(`/api/user/reset-password/${token}`, {password})
+        return response.data
+    } catch (error) {
+        throw handleApiError(error, "Failed to reset password");
+    }
+}
+
 export const deleteAccount = async (): Promise<void> => {
     try{
         const response = await apiClient.delete("/api/user/profile");
