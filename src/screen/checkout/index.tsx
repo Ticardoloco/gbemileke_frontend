@@ -10,6 +10,47 @@ import { useApp } from "@/store/appStore";
 import { createOrder } from "@/services/orderService";
 import { formatNaira } from "../cart";
 
+// All 36 States in Nigeria + FCT (Abuja)
+const NIGERIAN_STATES = [
+  "Abia",
+  "Adamawa",
+  "Akwa Ibom",
+  "Anambra",
+  "Bauchi",
+  "Bayelsa",
+  "Benue",
+  "Borno",
+  "Cross River",
+  "Delta",
+  "Ebonyi",
+  "Edo",
+  "Ekiti",
+  "Enugu",
+  "FCT - Abuja",
+  "Gombe",
+  "Imo",
+  "Jigawa",
+  "Kaduna",
+  "Kano",
+  "Katsina",
+  "Kebbi",
+  "Kogi",
+  "Kwara",
+  "Lagos",
+  "Nasarawa",
+  "Niger",
+  "Ogun",
+  "Ondo",
+  "Osun",
+  "Oyo",
+  "Plateau",
+  "Rivers",
+  "Sokoto",
+  "Taraba",
+  "Yobe",
+  "Zamfara",
+];
+
 // Helper function to calculate delivery fee based on state and subtotal
 function calculateDeliveryFee(state: string, itemsPrice: number): number {
   if (itemsPrice === 0) return 0;
@@ -41,8 +82,10 @@ function calculateDeliveryFee(state: string, itemsPrice: number): number {
     case "adamawa":
     case "akwa ibom":
     case "cross river":
+    case "delta":
     case "ebonyi":
     case "anambra":
+    case "enugu":
     case "gombe":
     case "imo":
     case "katsina":
@@ -51,10 +94,16 @@ function calculateDeliveryFee(state: string, itemsPrice: number): number {
     case "taraba":
     case "yobe":
     case "zamfara":
-    case "abuja":
+    case "bauchi":
+    case "bayelsa":
+    case "benue":
+    case "jigawa":
+    case "borno":
+    case "ebonyi":
+    case "fct - abuja":
       return 12000;
     default:
-      // Default rate across Nigeria if state is empty or unspecified
+      // Default rate for other states across Nigeria
       return 5000;
   }
 }
@@ -68,7 +117,7 @@ export default function Checkout() {
   const [streetAddress, setStreetAddress] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
-  const [country, setCountry] = useState("");
+  const [country, setCountry] = useState("Nigeria");
   const [paymentMethod] = useState("paystack");
   const [loading, setLoading] = useState(false);
 
@@ -149,7 +198,9 @@ export default function Checkout() {
         {/* Delivery Form */}
         <Card>
           <CardContent className="grid gap-4 p-6">
-            <h3 className="font-display text-lg font-semibold">Delivery Details</h3>
+            <h3 className="font-display text-lg font-semibold">
+              Delivery Details
+            </h3>
 
             <div>
               <Label htmlFor="fullName">Full name</Label>
@@ -200,13 +251,21 @@ export default function Checkout() {
 
               <div>
                 <Label htmlFor="state">State</Label>
-                <Input
+                <select
                   id="state"
-                  maxLength={50}
-                  placeholder="e.g. Lagos"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
                   value={state}
                   onChange={(e) => setState(e.target.value)}
-                />
+                >
+                  <option value="" disabled className="text-muted-foreground">
+                    Select state
+                  </option>
+                  {NIGERIAN_STATES.map((st) => (
+                    <option key={st} value={st}>
+                      {st}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -222,7 +281,8 @@ export default function Checkout() {
             </div>
 
             <div className="rounded-lg bg-secondary/60 p-4 text-sm text-muted-foreground">
-              💳 Payment method selected: <strong className="capitalize">{paymentMethod}</strong>
+              💳 Payment method selected:{" "}
+              <strong className="capitalize">{paymentMethod}</strong>
             </div>
           </CardContent>
         </Card>
@@ -230,7 +290,9 @@ export default function Checkout() {
         {/* Order Summary */}
         <Card className="h-fit">
           <CardContent className="p-6">
-            <h3 className="font-display text-lg font-semibold">Order Summary</h3>
+            <h3 className="font-display text-lg font-semibold">
+              Order Summary
+            </h3>
 
             <ul className="mt-4 space-y-2 text-sm">
               {cart.map((i) => (

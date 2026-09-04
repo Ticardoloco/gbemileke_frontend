@@ -12,6 +12,16 @@ const displayFont = Fraunces({ subsets: ["latin"], variable: "--font-display" })
 export const metadata: Metadata = {
   title: "Gbemileke Tradomedical Hospital — Holistic Care Rooted in Tradition",
   description: "Traditional herbal medicine meets modern wellness. Maternal care, bone setting, stroke recovery, fertility, and a curated herbal pharmacy.",
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon-180x180.png", sizes: "180x180", type: "image/png" },
+    ],
+    shortcut: "/icon.svg",
+    apple: [
+      { url: "/icon-180x180.png", sizes: "180x180", type: "image/png" },
+    ],
+  },
   openGraph: {
     title: "Gbemileke Tradomedical Hospital — Holistic Care Rooted in Tradition",
     description: "Traditional herbal medicine meets modern wellness.",
