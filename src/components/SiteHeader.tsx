@@ -12,7 +12,8 @@ import {
   LogOut, 
   ChevronDown,
   Calendar,
-  Package
+  Package,
+  LayoutDashboard
 } from "lucide-react";
 import { useState } from "react";
 import { useApp } from "@/store/appStore";
@@ -159,7 +160,7 @@ export function SiteHeader() {
                     onClick={() => router.push("/patient")}
                     className="cursor-pointer text-xs flex items-center gap-2"
                   >
-                    <Calendar className="h-4 w-4 text-primary" /> My Care Dashboard
+                    <LayoutDashboard className="h-4 w-4 text-primary" /> My Care Dashboard
                   </DropdownMenuItem>
 
                   {/* Added My Appointments Link */}
@@ -264,7 +265,14 @@ export function SiteHeader() {
                 </div>
 
                 <div className="grid gap-1">
-                  {/* Added Mobile Appointments Link */}
+                  {/* Added Mobile Care Dashboard Link */}
+                  <Link
+                    href="/patient"
+                    onClick={() => setOpen(false)}
+                    className="rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary flex items-center gap-2"
+                  >
+                    <LayoutDashboard className="h-4 w-4 text-primary" /> My Care Dashboard
+                  </Link>
                   <Link
                     href="/book/appointments"
                     onClick={() => setOpen(false)}
