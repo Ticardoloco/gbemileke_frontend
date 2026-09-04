@@ -93,7 +93,7 @@ export default function BookPage() {
     <div className="mx-auto max-w-3xl px-4 py-14">
       <div className="text-xs font-medium uppercase tracking-widest text-primary">Book a consultation</div>
       <h1 className="mt-2 font-display text-4xl font-semibold">Reserve your visit</h1>
-      <p className="mt-2 text-muted-foreground">Four short steps. In-person at our Ibadan center or over video.</p>
+      <p className="mt-2 text-muted-foreground">For short steps. In-person at our Lagos, Ijegun center or over video.</p>
 
       {/* Progress Steps */}
       <ol className="mt-8 flex items-center gap-3">

@@ -163,7 +163,7 @@ export default function LandingPage() {
               Our Specialties
             </div>
             <h2 className="mt-2 font-display text-3xl font-semibold md:text-4xl">
-              Eight departments. One holistic promise.
+              Nine departments. One holistic promise.
             </h2>
           </div>
           <Link
