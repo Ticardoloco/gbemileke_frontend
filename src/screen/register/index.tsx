@@ -141,7 +141,7 @@ export default function RegisterPage() {
                 <Input
                   id="fullName"
                   type="text"
-                  placeholder="e.g. Dr. Gbemileke Adebayo"
+                  placeholder="e.g. Gbemileke Adebayo"
                   {...register("fullName")}
                 />
               </div>
