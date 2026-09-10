@@ -1,6 +1,7 @@
+/* eslint-disable react-hooks/incompatible-library */
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
@@ -44,7 +45,7 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 export default function RegisterPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
-  const { setUser } = useApp();
+  const {user, setUser } = useApp();
 
   const {
     register,
@@ -109,7 +110,7 @@ export default function RegisterPage() {
       }
 
       toast.success("Account created successfully! Welcome to Gbemileke Hospital.");
-      router.push("/patient");
+      
     } catch (err) {
       if (err instanceof Error) {
         toast.error(err.message);
@@ -118,6 +119,19 @@ export default function RegisterPage() {
       }
     }
   };
+
+  useEffect(()=>{
+    if(user){
+      const role = user?.role?.toLowerCase();
+       if (role === "practitioner") {
+        router.push("/practitioner");
+      } else if (role === "admin") {
+        router.push("/admin");
+      } else {
+        router.push("/patient");
+      }
+    }
+  }, [user, router])
 
   return (
     <div className="mx-auto max-w-lg px-4 py-14">

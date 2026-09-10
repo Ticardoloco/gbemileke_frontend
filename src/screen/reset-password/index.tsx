@@ -1,12 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useParams, useSearchParams } from "next/navigation";
 import { Lock, Eye, EyeOff, Loader2, CheckCircle2, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { resetPassword } from "@/services/authService";
+import { useApp } from "@/store/appStore";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -24,6 +25,7 @@ export default function ResetPasswordPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
+  const {user} = useApp()
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -62,6 +64,19 @@ export default function ResetPasswordPage() {
       setLoading(false);
     }
   };
+
+  useEffect(()=>{
+    if(user){
+      const role = user?.role?.toLowerCase();
+       if (role === "practitioner") {
+        router.push("/practitioner");
+      } else if (role === "admin") {
+        router.push("/admin");
+      } else {
+        router.push("/patient");
+      }
+    }
+  }, [user, router])
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 sm:p-6">

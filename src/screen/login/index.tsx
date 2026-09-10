@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -40,7 +40,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
-  const { setUser } = useApp();
+  const { user, setUser } = useApp();
   const [showPassword, setShowPassword] = useState(false);
 
   const {
@@ -68,7 +68,6 @@ export default function LoginPage() {
       }
 
       const rawUser = response?.user;
-      const role = rawUser?.role?.toLowerCase();
 
       if (rawUser) {
         const userProfile = {
@@ -91,13 +90,7 @@ export default function LoginPage() {
       toast.success("Welcome back to Gbemileke Hospital!");
 
       // Dynamic Role-Based Routing
-      if (role === "practitioner") {
-        router.push("/practitioner");
-      } else if (role === "admin") {
-        router.push("/admin");
-      } else {
-        router.push("/patient");
-      }
+     
     } catch (err) {
       if (err instanceof Error) {
         toast.error(err.message);
@@ -106,6 +99,19 @@ export default function LoginPage() {
       }
     }
   };
+
+  useEffect(()=>{
+    const role = user?.role?.toLowerCase();
+    if (user) {
+       if (role === "practitioner") {
+        router.replace("/practitioner");
+      } else if (role === "admin") {
+        router.replace("/admin");
+      } else {
+        router.replace("/patient");
+      }
+    }
+  }, [user, router])
 
   return (
     <div className="flex min-h-[85vh] items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
