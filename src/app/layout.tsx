@@ -3,6 +3,7 @@ import { Inter, Fraunces } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css"; // Your Tailwind v4 stylesheet
 import HeaderLayout from "@/components/HeaderLayout";
+import InstallPrompt from "@/components/InstallPrompt";
 
 // Next.js automatically injects standard Google Fonts into your HTML document optimizations
 const sansFont = Inter({ subsets: ["latin"], variable: "--font-sans" });
@@ -66,6 +67,7 @@ export default function RootLayout({
             {children}
           </main>
           </HeaderLayout>
+          <InstallPrompt/>
           <Toaster />
         
       </body>
