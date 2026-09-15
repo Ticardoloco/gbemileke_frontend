@@ -4,7 +4,8 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Gbemileke Tradomedical Hospital",
     short_name: "Gbemileke",
-    description: "Holistic Care Rooted in Tradition. Book appointments, order herbal remedies, and manage your health care.",
+    description:
+      "Holistic Care Rooted in Tradition. Book appointments, order herbal remedies, and manage your health care.",
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",
@@ -19,7 +20,13 @@ export default function manifest(): MetadataRoute.Manifest {
         src: "/icon180.png",
         sizes: "180x180",
         type: "image/png",
-        purpose: "maskable",
+        purpose: "any",
+      },
+      {
+        src: "/icon512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "any",
       },
       {
         src: "/icon512.png",
