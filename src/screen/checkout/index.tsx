@@ -96,6 +96,7 @@ function calculateDeliveryFee(state: string, itemsPrice: number): number {
     case "zamfara":
     case "bauchi":
     case "bayelsa":
+    case "sokoto":
     case "benue":
     case "jigawa":
     case "borno":
