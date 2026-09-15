@@ -93,6 +93,9 @@ function calculateDeliveryFee(state: string, itemsPrice: number): number {
     case "plateau":
     case "taraba":
     case "yobe":
+    case "niger":
+    case "kebbi":
+    case "nasarawa":
     case "zamfara":
     case "bauchi":
     case "bayelsa":
