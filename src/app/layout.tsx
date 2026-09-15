@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Fraunces } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css"; // Your Tailwind v4 stylesheet
@@ -8,10 +8,26 @@ import HeaderLayout from "@/components/HeaderLayout";
 const sansFont = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const displayFont = Fraunces({ subsets: ["latin"], variable: "--font-display" });
 
+
+export const viewport: Viewport = {
+  themeColor: "#025a2b",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
 // This completely replaces your TanStack head() configuration object
 export const metadata: Metadata = {
   title: "Gbemileke Tradomedical Hospital — Holistic Care Rooted in Tradition",
   description: "Traditional herbal medicine meets modern wellness. Maternal care, bone setting, stroke recovery, fertility, and a curated herbal pharmacy.",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Gbemileke Hospital",
+  },
+  formatDetection: {
+    telephone: false,
+  },
   icons: {
     icon: [
       { url: "/icon.svg", type: "image/svg+xml" },
