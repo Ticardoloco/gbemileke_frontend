@@ -142,7 +142,7 @@ export default function RegisterPage() {
         Create an account
       </h1>
       <p className="mt-2 text-muted-foreground">
-        Sign up to manage your medical appointments, access consultation records, and connect with doctors in Ibadan.
+        Sign up to manage your medical appointments, access consultation records, and connect with doctors in Gbemileke hospital.
       </p>
 
       <Card className="mt-8">
