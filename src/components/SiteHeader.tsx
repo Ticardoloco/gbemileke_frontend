@@ -32,6 +32,7 @@ const nav = [
   { href: "/specialties", label: "Specialties" },
   { href: "/patient-card", label: "Patient Card" },
   { href: "/shop", label: "Herbal Store" },
+  { href: "/healing-stories", label: "Healing Stories" },
 ];
 
 export function SiteHeader() {

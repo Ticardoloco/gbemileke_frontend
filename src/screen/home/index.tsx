@@ -17,6 +17,8 @@ import {
 } from "@/services/specialitiesService";
 import Specialities from "@/components/home/Specialities";
 import { SpecialitiesSkeleton } from "@/components/skeleton/SpecialitiesLoader";
+import { getApprovedTestimonial, TestimonialResponse } from "@/services/testimonialServices";
+import TestimonialCard from "@/components/home/TestimonialCard";
 
 const stats = [
   { label: "Patients cared for", value: "12,400+" },
@@ -25,30 +27,12 @@ const stats = [
   { label: "Herbal formulas", value: "60+" },
 ];
 
-const testimonials = [
-  {
-    name: "Amina S.",
-    care: "Anti-Natal Care",
-    quote:
-      "Every visit felt like being wrapped in warmth. My pregnancy was smooth from start to finish.",
-  },
-  {
-    name: "Kola O.",
-    care: "Bone Setting",
-    quote:
-      "They set my fractured wrist without surgery. Six weeks later I was back to work — pain-free.",
-  },
-  {
-    name: "Rita E.",
-    care: "Infertility Care",
-    quote:
-      "After two years of trying, their herbal protocol changed everything. We are expecting in October.",
-  },
-];
 
 export default function LandingPage() {
   const [specialities, setSpecialities] = useState<SpecialitiesType[]>([]);
   const [specialitiesLoading, setSpecialitiesLoading] = useState<boolean>(true);
+  const [testimonials, setTestimonials] = useState<TestimonialResponse[]>([])
+  const [testimonialsLoading, setTestimonialsLoading] = useState<boolean>(true)
 
   useEffect(() => {
     const fetchSpecialities = async () => {
@@ -65,6 +49,24 @@ export default function LandingPage() {
 
     fetchSpecialities();
   }, []);
+
+  useEffect(()=>{
+    const fetchTestimonial = async ()=>{
+      try {
+        setTestimonialsLoading(true)
+        const res = await getApprovedTestimonial();
+        setTestimonials(res.testimonials);
+      } catch (error) {
+        console.error("Failed to fetch approved testimonials", error);
+        
+      }finally{
+        setTestimonialsLoading(true);
+      }
+    }
+    fetchTestimonial()
+  }, [])
+
+  const featuredTestimonials = testimonials.filter((tes)=> tes?.isFeatured === true);
   return (
     <div>
       {/* HERO */}
@@ -202,25 +204,11 @@ export default function LandingPage() {
             </h2>
           </div>
           <div className="mt-10 grid gap-6 md:grid-cols-3">
-            {testimonials.map((t) => (
-              <Card key={t.name} className="bg-card">
-                <CardContent className="p-6">
-                  <div className="flex gap-1 text-primary">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star key={i} className="h-4 w-4 fill-current" />
-                    ))}
-                  </div>
-                  <p className="mt-4 text-sm leading-relaxed text-foreground">
-                    &ldquo;{t.quote}&ldquo;
-                  </p>
-                  <div className="mt-4 border-t border-border/60 pt-4 text-sm">
-                    <div className="font-semibold">{t.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {t.care}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+            {featuredTestimonials.splice(0,3).map((t) => (
+             <TestimonialCard
+             key={t._id}
+             testimonial={t}
+             />
             ))}
           </div>
         </div>

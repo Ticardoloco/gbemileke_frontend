@@ -7,6 +7,7 @@ import {
   PackageCheck,
   ShieldCheck,
   Settings,
+  HeartHandshake,
 } from "lucide-react";
 
 export const adminNavItems = [
@@ -16,6 +17,7 @@ export const adminNavItems = [
   { label: "Appointments", href: "/admin/appointments", icon: Calendar },
   { label: "Manage Products", href: "/admin/products", icon: ShoppingBag },
   { label: "Products Ordered", href: "/admin/orders", icon: PackageCheck },
+  {label: "Manage Stories", href: "/admin/stories", icon: HeartHandshake },
   { label: "Role Management", href: "/admin/roles", icon: ShieldCheck },
   { label: "System Settings", href: "/admin/settings", icon: Settings },
 ];
