@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/sonner";
 import "./globals.css"; // Your Tailwind v4 stylesheet
 import HeaderLayout from "@/components/HeaderLayout";
 import InstallPrompt from "@/components/InstallPrompt";
+import { SessionMonitorProvider } from "@/context/SessionMonitorContext";
 
 // Next.js automatically injects standard Google Fonts into your HTML document optimizations
 const sansFont = Inter({ subsets: ["latin"], variable: "--font-sans" });
@@ -61,6 +62,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${sansFont.variable} ${displayFont.variable}`}>
       <body className="antialiased flex min-h-screen flex-col">
+        <SessionMonitorProvider>
           {/* Layout elements like SiteHeader & SiteFooter stay here */}
           <HeaderLayout>
           <main className="flex-1">
@@ -69,7 +71,7 @@ export default function RootLayout({
           </HeaderLayout>
           <InstallPrompt/>
           <Toaster />
-        
+        </SessionMonitorProvider>
       </body>
     </html>
   );
