@@ -34,7 +34,7 @@ export type SpecialtySlug =
   | "infection-treatment"
   | "low-sperm-count";
 
-const CARD_FEE_FORMATTED = "₦10,000";
+const CARD_FEE_FORMATTED = "₦5,000";
 
 export default function RegisterPatientCardPage() {
   const searchParams = useSearchParams();

@@ -91,10 +91,16 @@ export default function PatientDashboard() {
         setLoading(true);
         const queryParams = filterCard !== "all" ? { specialty: filterCard } : undefined;
         const res = await getPatientCard(queryParams);
-        const fetchedCards = res?.cards || [];
+        const fetchedCards: PatientCardDetails[] = res?.cards || [];
 
-        setCards(fetchedCards);
-        setSelectedCardId(fetchedCards[0]?._id || "");
+        // Filter: Keep cards where isClosed is false OR status is active
+        const activeCards = fetchedCards.filter(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (card: any) => card.isClosed === false || card.status?.toLowerCase() === "active"
+        );
+
+        setCards(activeCards);
+        setSelectedCardId(activeCards[0]?._id || "");
       } catch (error) {
         console.error("Error fetching card data:", error);
         setCards([]);
@@ -615,7 +621,7 @@ export default function PatientDashboard() {
           <div>
             <h2 className="text-lg sm:text-xl font-bold text-slate-800">No Cards Found</h2>
             <p className="text-slate-500 text-xs sm:text-sm mt-1">
-              There are no patient cards matching the selected specialty.
+              There are no active patient cards matching the selected specialty.
             </p>
           </div>
           {filterCard !== "all" && (
@@ -652,25 +658,11 @@ function DashboardSkeleton() {
 
       <div className="mb-6 space-y-2">
         <div className="h-4 w-32 bg-slate-200 rounded-md" />
-        <div className="flex items-center gap-2.5 overflow-x-auto pb-2">
-          <div className="h-9 w-32 bg-slate-200 rounded-xl shrink-0" />
-          <div className="h-9 w-36 bg-slate-200 rounded-xl shrink-0" />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-        <div className="space-y-6 order-1 lg:order-2">
-          <div className="bg-slate-200 h-64 rounded-2xl p-5" />
-          <div className="bg-white p-5 rounded-2xl border border-slate-100 h-40" />
-        </div>
-
-        <div className="lg:col-span-2 space-y-6 order-2 lg:order-1">
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 h-48" />
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 h-48" />
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          <div className="h-10 w-36 bg-slate-200 rounded-xl shrink-0" />
+          <div className="h-10 w-36 bg-slate-200 rounded-xl shrink-0" />
         </div>
       </div>
     </div>
   );
 }
-
-

@@ -70,6 +70,9 @@ export interface BillingType {
 
 
 export interface PatientCardDetails {
+    closedAt: string;
+    isClosed: boolean;
+    status: string;
     createdAt: string | undefined;
     _id: string;
     patient: PatientType;
@@ -143,6 +146,10 @@ export interface SuspendPayload {
     reason: string;
 }
 
+export interface ClosePatientCardPayload {
+    closureReason: string;
+}
+
 export const getCurrentUser = async ():Promise<{user:UserProfile}> =>{
     const response = await apiClient.get<{user:UserProfile}>("/api/user/profile");
     return response.data
@@ -194,6 +201,10 @@ export const getAllPatientCards = async (): Promise<PatientCardResponse> =>{
 
 export const getPatientCardById = async (id: string): Promise<{card: PatientCardDetails}> =>{
     const response = await apiClient.get<{card: PatientCardDetails}>(`/api/patient-cards/${id}`);
+    return response.data
+}
+export const closePatientCard = async (id:string, payload: ClosePatientCardPayload)=>{
+    const response = await apiClient.patch(`/api/patient-cards/${id}/close`, payload);
     return response.data
 }
 

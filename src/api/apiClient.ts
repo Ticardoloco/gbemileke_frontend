@@ -8,19 +8,19 @@ import axios, {
 } from "axios";
 
 export interface ApiErrorResponse {
-    message?: string;
-    detail?: string;
+  message?: string;
+  detail?: string;
 }
 
 export const getAccessToken = (): string | null => {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem("token");
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("token");
 };
 
 export const setAccessToken = (token: string): void => {
-    if (typeof window === 'undefined') return;
-    localStorage.setItem('token', token);
-}
+  if (typeof window === "undefined") return;
+  localStorage.setItem("token", token);
+};
 
 export const getStoredUser = (): UserProfile | null => {
   if (typeof window === "undefined") return null;
@@ -34,43 +34,51 @@ export const setStoredUser = (user: UserProfile): void => {
 };
 
 export const clearAuthSession = (): void => {
-    if (typeof window === 'undefined') return;
-    localStorage.removeItem('token');
-    localStorage.removeItem("user_profile");
-}
-
+  if (typeof window === "undefined") return;
+  localStorage.removeItem("token");
+  localStorage.removeItem("user_profile");
+};
 
 export const apiClient: AxiosInstance = axios.create({
-    baseURL: _config.baseUrl,
-    headers: {
-        'Content-Type': 'application/json',
-    },
-    withCredentials: true,
+  baseURL: _config.baseUrl,
+  headers: {
+    "Content-Type": "application/json",
+  },
+  withCredentials: true,
 });
 
 apiClient.interceptors.request.use(
-    (config: InternalAxiosRequestConfig) => {
-        const token = getAccessToken();
-        if (token && config.headers) {
-            config.headers.Authorization = `Bearer ${token}`
-        }
-        return config;
-    },
-    (error: AxiosError) => Promise.reject(error)
+  (config: InternalAxiosRequestConfig) => {
+    const token = getAccessToken();
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error: AxiosError) => Promise.reject(error)
 );
 
 apiClient.interceptors.response.use(
-    (response: AxiosResponse) => response,
-    (error: AxiosError<ApiErrorResponse>) =>{
-        const isLoginRequest = error.config?.url?.includes('/login');
-        if(error.response?.status === 401 && !isLoginRequest) {
-            clearAuthSession();
-            if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-                window.location.href = '/login';
-            }
+  (response: AxiosResponse) => response,
+  (error: AxiosError<ApiErrorResponse>) => {
+    const isLoginRequest = error.config?.url?.includes("/login");
+
+    if (error.response?.status === 401 && !isLoginRequest) {
+      // 1. Wipe local storage
+      clearAuthSession();
+
+      if (typeof window !== "undefined") {
+        const currentPath = window.location.pathname;
+
+        // 2. Prevent infinite redirect if already on login page
+        if (!currentPath.startsWith("/login")) {
+          // Hard reload redirect clears all React in-memory state instantly
+          window.location.replace("/login");
         }
-        return Promise.reject(error);
+      }
     }
+    return Promise.reject(error);
+  }
 );
 
 export default apiClient;

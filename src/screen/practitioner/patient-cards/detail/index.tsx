@@ -1,4 +1,4 @@
-/* eslint-disable react-hooks/set-state-in-effect */
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
@@ -15,9 +15,11 @@ import {
   deleteMedicalHistory,
   updatePrescription,
   deletePrescription,
+  closePatientCard,
   MedicalHistoryPayload,
   PrescriptionPayload,
   BillingPaymentPayload,
+  ClosePatientCardPayload,
 } from "@/services/userService";
 import Image from "next/image";
 
@@ -52,6 +54,22 @@ export default function PatientCardDynamicPage() {
   const [editProduct, setEditProduct] = useState("");
   const [editDosage, setEditDosage] = useState("");
 
+  // Modal Dialog States
+  const [showCloseModal, setShowCloseModal] = useState(false);
+  const [closureReason, setClosureReason] = useState("All sessions completed");
+
+  const [deleteModal, setDeleteModal] = useState<{
+    isOpen: boolean;
+    type: "history" | "prescription" | null;
+    id: string | null;
+    title: string;
+  }>({
+    isOpen: false,
+    type: null,
+    id: null,
+    title: "",
+  });
+
   const loadCardData = useCallback(async () => {
     if (!cardId) return;
     try {
@@ -70,8 +88,34 @@ export default function PatientCardDynamicPage() {
   }, [cardId]);
 
   useEffect(() => {
-    if (cardId) loadCardData();
-  }, [cardId, loadCardData]);
+    if (!cardId) return;
+
+    let cancelled = false;
+
+    const fetchCardData = async () => {
+      try {
+        const data = await getPatientCardById(cardId);
+        if (cancelled) return;
+        setError(null);
+        setCard(data.card);
+      } catch (err: any) {
+        console.error("Error fetching patient card:", err);
+        if (cancelled) return;
+        const errorMsg =
+          "Failed to load patient card. Please verify the ID or try again.";
+        setError(errorMsg);
+        toast.error(errorMsg);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    fetchCardData();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [cardId]);
 
   const handleAction = async (
     actionFn: () => Promise<void>,
@@ -91,6 +135,26 @@ export default function PatientCardDynamicPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // --- Close Card Action ---
+  const handleConfirmCloseCard = async () => {
+    if (!closureReason.trim()) {
+      toast.error("Please provide a reason for closing this card.");
+      return;
+    }
+
+    const payload: ClosePatientCardPayload = {
+      closureReason,
+    };
+
+    handleAction(
+      () => closePatientCard(cardId, payload),
+      () => {
+        setShowCloseModal(false);
+      },
+      "Patient card closed successfully!"
+    );
   };
 
   // --- Medical History Actions ---
@@ -114,13 +178,13 @@ export default function PatientCardDynamicPage() {
     );
   };
 
-  const handleDeleteHistory = (itemId: string) => {
-    if (!confirm("Are you sure you want to delete this clinical note?")) return;
-    handleAction(
-      () => deleteMedicalHistory(cardId, itemId),
-      () => {},
-      "Clinical note deleted.",
-    );
+  const openDeleteHistoryModal = (itemId: string) => {
+    setDeleteModal({
+      isOpen: true,
+      type: "history",
+      id: itemId,
+      title: "Delete Clinical Note",
+    });
   };
 
   // --- Prescription Actions ---
@@ -151,13 +215,31 @@ export default function PatientCardDynamicPage() {
     );
   };
 
-  const handleDeletePrescription = (itemId: string) => {
-    if (!confirm("Are you sure you want to delete this prescription?")) return;
-    handleAction(
-      () => deletePrescription(cardId, itemId),
-      () => {},
-      "Prescription deleted.",
-    );
+  const openDeletePrescriptionModal = (itemId: string) => {
+    setDeleteModal({
+      isOpen: true,
+      type: "prescription",
+      id: itemId,
+      title: "Delete Prescription",
+    });
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deleteModal.id || !deleteModal.type) return;
+
+    if (deleteModal.type === "history") {
+      handleAction(
+        () => deleteMedicalHistory(cardId, deleteModal.id!),
+        () => setDeleteModal({ isOpen: false, type: null, id: null, title: "" }),
+        "Clinical note deleted."
+      );
+    } else if (deleteModal.type === "prescription") {
+      handleAction(
+        () => deletePrescription(cardId, deleteModal.id!),
+        () => setDeleteModal({ isOpen: false, type: null, id: null, title: "" }),
+        "Prescription deleted."
+      );
+    }
   };
 
   // --- Billing Action ---
@@ -205,6 +287,18 @@ export default function PatientCardDynamicPage() {
     );
   }
 
+  const isCardClosed = card.status === "closed" || (card as any).isClosed;
+  
+  // Extract closedAt date property
+  const closedDateRaw = card.closedAt || (card as any).closedDate || (card as any).updatedAt;
+  const closedDateFormatted = closedDateRaw
+    ? new Date(closedDateRaw).toLocaleDateString("en-GB", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+    : null;
+
   const prescriptionsList = Array.isArray(card.prescriptions)
     ? card.prescriptions
     : card.prescriptions
@@ -212,7 +306,6 @@ export default function PatientCardDynamicPage() {
       : [];
 
   const chargesList = card.billing?.sessions || [];
-  const paymentsList = card.billing?.paymentHistory || (card as any).payments || [];
 
   return (
     <div className="max-w-6xl mx-auto p-4 md:p-6 space-y-6 bg-slate-50 min-h-screen">
@@ -262,7 +355,7 @@ export default function PatientCardDynamicPage() {
             <p className="text-sm text-slate-500">
               {card?.patient?.email} | {card?.patient?.phoneNumber}
             </p>
-            <div className="flex gap-2 mt-2">
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
               <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800">
                 {card?.specialty}
               </span>
@@ -273,51 +366,81 @@ export default function PatientCardDynamicPage() {
                     : "bg-amber-100 text-amber-800"
                 }`}
               >
-                {card?.isPaid ? "Card Active" : "Payment Pending"}
+                {card?.isPaid ? "Paid" : "Payment Pending"}
+              </span>
+
+              {/* Status Badge & Closed Date */}
+              <span
+                className={`px-2.5 py-0.5 text-xs font-semibold rounded-full ${
+                  isCardClosed
+                    ? "bg-rose-100 text-rose-800 border border-rose-200"
+                    : "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                }`}
+              >
+                {isCardClosed
+                  ? `Card Closed${closedDateFormatted ? ` (${closedDateFormatted})` : ""}`
+                  : "Card Active"}
               </span>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-xs text-slate-600 border-t md:border-t-0 md:border-l border-slate-200 pt-4 md:pt-0 md:pl-6 w-full md:w-auto">
-          <div>
-            <span className="text-slate-400 font-bold block">PHONE NUMBER</span>
-            <span className="text-slate-800 text-sm font-medium">
-              {card.patient?.phoneNumber || "N/A"}
-            </span>
-          </div>
-          <div>
-            <span className="text-slate-400 font-bold block">AGE</span>
-            <span className="text-slate-800 text-sm font-medium">
-              {card.age} years
-            </span>
-          </div>
-          <div>
-            <span className="text-slate-400 font-bold block">
-              MARITAL STATUS
-            </span>
-            <span className="text-slate-800 text-sm font-medium">
-              {card.maritalStatus}
-            </span>
-          </div>
-          <div>
-            <span className="text-slate-400 font-bold block">ORIGIN</span>
-            <span className="text-slate-800 text-sm font-medium">
-              {card.stateOfOrigin} State
-            </span>
-          </div>
-          <div>
-            <span className="text-slate-400 font-bold block">NEXT OF KIN</span>
-            <span className="text-slate-800 text-sm font-medium">
-              {card.nextOfKinName}
-            </span>
-          </div>
-          <div>
-            <span className="text-slate-400 font-bold block">NOK CONTACT</span>
-            <span className="text-slate-800 text-sm font-medium">
-              {card.nextOfKinPhone}
-            </span>
-          </div>
+        <div className="flex flex-col md:flex-row items-start md:items-center gap-6 w-full md:w-auto justify-between">
+          
+              {/* Patient Header Details Grid */}
+<div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 text-xs text-slate-600 border-t md:border-t-0 md:border-l border-slate-200 pt-4 md:pt-0 md:pl-6 w-full md:w-auto">
+  <div>
+    <span className="text-slate-400 font-bold block">PHONE NUMBER</span>
+    <span className="text-slate-800 text-sm font-medium">
+      {card.patient?.phoneNumber || "N/A"}
+    </span>
+  </div>
+
+  <div>
+    <span className="text-slate-400 font-bold block">AGE</span>
+    <span className="text-slate-800 text-sm font-medium">
+      {card.age} years
+    </span>
+  </div>
+
+  <div>
+    <span className="text-slate-400 font-bold block">ORIGIN</span>
+    <span className="text-slate-800 text-sm font-medium">
+      {card.stateOfOrigin} State
+    </span>
+  </div>
+
+  {/* --- NEXT OF KIN INFO --- */}
+  <div>
+    <span className="text-slate-400 font-bold block">NOK NAME</span>
+    <span className="text-slate-800 text-sm font-medium">
+      {(card as any).nextOfKinName || "N/A"}
+    </span>
+  </div>
+
+  <div>
+    <span className="text-slate-400 font-bold block">NOK PHONE</span>
+    <span className="text-slate-800 text-sm font-medium">
+      {(card as any).nextOfKinPhone || "N/A"}
+    </span>
+  </div>
+</div>
+          {/* Close Patient Card Button */}
+          <button
+            onClick={() => setShowCloseModal(true)}
+            disabled={submitting || isCardClosed}
+            className={`w-full md:w-auto px-4 py-2.5 rounded-lg font-medium text-xs transition-colors shrink-0 ${
+              isCardClosed
+                ? "bg-slate-100 text-slate-400 border border-slate-200 cursor-not-allowed"
+                : "bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200"
+            }`}
+          >
+            {submitting
+              ? "Closing..."
+              : isCardClosed
+              ? "Card Closed"
+              : "Close Patient Card"}
+          </button>
         </div>
       </div>
 
@@ -350,15 +473,20 @@ export default function PatientCardDynamicPage() {
               <textarea
                 value={historyNote}
                 onChange={(e) => setHistoryNote(e.target.value)}
-                placeholder="Enter patient observations, diagnostic findings, or treatment updates..."
-                className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm"
+                placeholder={
+                  isCardClosed
+                    ? "This card is closed."
+                    : "Enter patient observations, diagnostic findings, or treatment updates..."
+                }
+                disabled={isCardClosed}
+                className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 outline-none text-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
                 rows={3}
                 required
               />
               <button
                 type="submit"
-                disabled={submitting}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm rounded-lg transition-colors disabled:opacity-50"
+                disabled={submitting || isCardClosed}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? "Saving..." : "Save Clinical Note"}
               </button>
@@ -386,21 +514,25 @@ export default function PatientCardDynamicPage() {
                             year: "numeric",
                           })}
                         </span>
-                        <button
-                          onClick={() => {
-                            setEditingHistoryId(item._id);
-                            setEditHistoryNote(item.note);
-                          }}
-                          className="text-blue-600 hover:underline font-medium"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeleteHistory(item._id)}
-                          className="text-red-600 hover:underline font-medium"
-                        >
-                          Delete
-                        </button>
+                        {!isCardClosed && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setEditingHistoryId(item._id);
+                                setEditHistoryNote(item.note);
+                              }}
+                              className="text-blue-600 hover:underline font-medium"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => openDeleteHistoryModal(item._id)}
+                              className="text-red-600 hover:underline font-medium"
+                            >
+                              Delete
+                            </button>
+                          </>
+                        )}
                       </div>
                     </div>
 
@@ -460,7 +592,8 @@ export default function PatientCardDynamicPage() {
                   value={product}
                   onChange={(e) => setProduct(e.target.value)}
                   placeholder="e.g. Herbal Mixture A"
-                  className="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+                  disabled={isCardClosed}
+                  className="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500 text-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
                   required
                 />
               </div>
@@ -473,14 +606,15 @@ export default function PatientCardDynamicPage() {
                   value={dosage}
                   onChange={(e) => setDosage(e.target.value)}
                   placeholder="e.g. 2 spoons daily after breakfast"
-                  className="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+                  disabled={isCardClosed}
+                  className="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500 text-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
                   required
                 />
               </div>
               <button
                 type="submit"
-                disabled={submitting}
-                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm rounded-lg h-fit disabled:opacity-50 transition-colors"
+                disabled={submitting || isCardClosed}
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm rounded-lg h-fit disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {submitting ? "Prescribing..." : "Prescribe Medicine"}
               </button>
@@ -510,9 +644,7 @@ export default function PatientCardDynamicPage() {
                                 <input
                                   type="text"
                                   value={editProduct}
-                                  onChange={(e) =>
-                                    setEditProduct(e.target.value)
-                                  }
+                                  onChange={(e) => setEditProduct(e.target.value)}
                                   className="p-1 border border-slate-300 rounded text-sm w-full"
                                 />
                               </td>
@@ -520,9 +652,7 @@ export default function PatientCardDynamicPage() {
                                 <input
                                   type="text"
                                   value={editDosage}
-                                  onChange={(e) =>
-                                    setEditDosage(e.target.value)
-                                  }
+                                  onChange={(e) => setEditDosage(e.target.value)}
                                   className="p-1 border border-slate-300 rounded text-sm w-full"
                                 />
                               </td>
@@ -531,9 +661,7 @@ export default function PatientCardDynamicPage() {
                               </td>
                               <td className="p-2 text-right space-x-2">
                                 <button
-                                  onClick={() =>
-                                    handleUpdatePrescription(p._id)
-                                  }
+                                  onClick={() => handleUpdatePrescription(p._id)}
                                   className="px-2 py-1 bg-emerald-600 text-white text-xs rounded hover:bg-emerald-700"
                                 >
                                   Save
@@ -556,24 +684,26 @@ export default function PatientCardDynamicPage() {
                                 {new Date(p.date).toLocaleDateString()}
                               </td>
                               <td className="p-3 text-right space-x-3 text-xs">
-                                <button
-                                  onClick={() => {
-                                    setEditingPrescriptionId(p._id);
-                                    setEditProduct(p.product);
-                                    setEditDosage(p.dosage);
-                                  }}
-                                  className="text-blue-600 font-medium hover:underline"
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  onClick={() =>
-                                    handleDeletePrescription(p._id)
-                                  }
-                                  className="text-red-600 font-medium hover:underline"
-                                >
-                                  Delete
-                                </button>
+                                {!isCardClosed && (
+                                  <>
+                                    <button
+                                      onClick={() => {
+                                        setEditingPrescriptionId(p._id);
+                                        setEditProduct(p.product);
+                                        setEditDosage(p.dosage);
+                                      }}
+                                      className="text-blue-600 font-medium hover:underline"
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      onClick={() => openDeletePrescriptionModal(p._id)}
+                                      className="text-red-600 font-medium hover:underline"
+                                    >
+                                      Delete
+                                    </button>
+                                  </>
+                                )}
                               </td>
                             </>
                           )}
@@ -687,104 +817,140 @@ export default function PatientCardDynamicPage() {
                 <h4 className="font-semibold text-slate-800 text-sm">
                   Record Payment Received
                 </h4>
-                <input
-                  type="number"
-                  min="0"
-                  value={payAmount}
-                  onChange={(e) =>
-                    setPayAmount(
-                      e.target.value === "" ? "" : Number(e.target.value),
-                    )
-                  }
-                  placeholder="Amount Paid (₦)"
-                  className="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-                  required
-                />
-                <select
-                  value={payMethod}
-                  onChange={(e) => setPayMethod(e.target.value)}
-                  className="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-                >
-                  <option value="transfer">Bank Transfer</option>
-                  <option value="cash">Cash</option>
-                  <option value="pos">POS Terminal</option>
-                </select>
-                <input
-                  type="text"
-                  value={payRef}
-                  onChange={(e) => setPayRef(e.target.value)}
-                  placeholder="Payment Reference / Receipt #"
-                  className="w-full p-2.5 bg-white border border-slate-300 rounded-lg text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-                  required
-                />
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    Amount Paid (₦)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={payAmount}
+                    onChange={(e) =>
+                      setPayAmount(e.target.value ? Number(e.target.value) : "")
+                    }
+                    placeholder="e.g. 5000"
+                    disabled={isCardClosed}
+                    className="w-full p-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500 text-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    Payment Method
+                  </label>
+                  <select
+                    value={payMethod}
+                    onChange={(e) => setPayMethod(e.target.value)}
+                    disabled={isCardClosed}
+                    className="w-full p-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500 text-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
+                  >
+                    <option value="transfer">Bank Transfer</option>
+                    <option value="cash">Cash</option>
+                    <option value="pos">POS / Card</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">
+                    Reference / Receipt No.
+                  </label>
+                  <input
+                    type="text"
+                    value={payRef}
+                    onChange={(e) => setPayRef(e.target.value)}
+                    placeholder="e.g. TXN-984022"
+                    disabled={isCardClosed}
+                    className="w-full p-2 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500 text-sm disabled:bg-slate-100 disabled:cursor-not-allowed"
+                    required
+                  />
+                </div>
                 <button
                   type="submit"
-                  disabled={submitting}
-                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm rounded-lg transition-colors disabled:opacity-50"
+                  disabled={submitting || isCardClosed}
+                  className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {submitting ? "Recording..." : "Record Payment"}
                 </button>
               </form>
             </div>
-
-            {/* Payment History List */}
-            <div className="border-t border-slate-200 pt-6 space-y-3">
-              <h4 className="font-semibold text-slate-800 text-sm">
-                Payment History
-              </h4>
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs text-slate-600 border border-slate-200 bg-white rounded-lg">
-                  <thead className="bg-slate-100 text-slate-700 font-semibold uppercase">
-                    <tr>
-                      <th className="p-2.5 border-b">Reference</th>
-                      <th className="p-2.5 border-b">Method</th>
-                      <th className="p-2.5 border-b">Date</th>
-                      <th className="p-2.5 border-b text-right">Amount (₦)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paymentsList.length > 0 ? (
-                      paymentsList.toReversed().map((payment: any, idx: number) => (
-                        <tr key={payment._id || idx} className="border-b hover:bg-slate-50">
-                          <td className="p-2.5 font-medium text-slate-800">
-                            {payment.reference || payment.receiptNo || "N/A"}
-                          </td>
-                          <td className="p-2.5 capitalize">
-                            <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[11px] font-medium">
-                              {payment.paymentMethod || payment.method || "Transfer"}
-                            </span>
-                          </td>
-                          <td className="p-2.5 text-slate-500">
-                            {payment.date || payment.createdAt
-                              ? new Date(payment.date || payment.createdAt).toLocaleDateString("en-GB", {
-                                  day: "numeric",
-                                  month: "short",
-                                  year: "numeric",
-                                })
-                              : "N/A"}
-                          </td>
-                          <td className="p-2.5 text-right font-semibold text-emerald-600">
-                            ₦{(payment.amount || 0).toLocaleString()}
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td
-                          colSpan={4}
-                          className="p-4 text-center text-slate-400 italic"
-                        >
-                          No payment history recorded yet.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
           </div>
         )}
       </div>
+
+      {/* Close Card Modal */}
+      {showCloseModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 space-y-4 shadow-xl border border-slate-100">
+            <h3 className="text-lg font-bold text-slate-900">
+              Close Patient Card
+            </h3>
+            <p className="text-sm text-slate-600">
+              Closing this card will mark the patient&apos;s treatment cycle as complete.
+            </p>
+            <div>
+              <label className="block text-xs font-medium text-slate-700 mb-1">
+                Reason for Closure
+              </label>
+              <textarea
+                value={closureReason}
+                onChange={(e) => setClosureReason(e.target.value)}
+                className="w-full p-2.5 border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+                rows={3}
+                required
+              />
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowCloseModal(false)}
+                className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmCloseCard}
+                disabled={submitting}
+                className="px-4 py-2 text-sm font-medium bg-rose-600 hover:bg-rose-700 text-white rounded-lg transition-colors disabled:opacity-50"
+              >
+                {submitting ? "Closing..." : "Confirm Closure"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteModal.isOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 space-y-4 shadow-xl border border-slate-100">
+            <h3 className="text-lg font-bold text-slate-900">
+              {deleteModal.title}
+            </h3>
+            <p className="text-sm text-slate-600">
+              Are you sure you want to delete this record? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() =>
+                  setDeleteModal({ isOpen: false, type: null, id: null, title: "" })
+                }
+                className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDelete}
+                disabled={submitting}
+                className="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50"
+              >
+                {submitting ? "Deleting..." : "Confirm Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

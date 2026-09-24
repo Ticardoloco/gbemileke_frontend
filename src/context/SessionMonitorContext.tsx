@@ -6,14 +6,12 @@ import { useApp } from "@/store/appStore";
 import { ShareStoryModal } from "@/components/modals/ShareStoryModel";
 
 interface SessionMonitorContextType {
-  checkPendingSessions: () => void;
+  checkPendingSessions: () => Promise<void>;
 }
 
 const SessionMonitorContext = createContext<SessionMonitorContextType>({
-  checkPendingSessions: () => {},
+  checkPendingSessions: async () => {},
 });
-
-const POLL_INTERVAL = 5000; // 5 Seconds background poll
 
 export const SessionMonitorProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useApp();
@@ -24,7 +22,8 @@ export const SessionMonitorProvider = ({ children }: { children: React.ReactNode
   const prevSessionsRef = useRef<Map<string, boolean>>(new Map());
 
   const pollSessions = useCallback(async () => {
-    if (!user) return;
+    // Skip network call if user is logged out, tab is hidden, or modal is already active
+    if (!user || isShareModalOpen || typeof document !== "undefined" && document.hidden) return;
 
     try {
       const res = await getPatientCard();
@@ -43,8 +42,8 @@ export const SessionMonitorProvider = ({ children }: { children: React.ReactNode
             const hasBeenPrompted = localStorage.getItem(storageKey);
 
             // TRIGGER CONDITIONS:
-            // 1. Session just closed while logged in (wasClosedPreviously === false -> isNowClosed === true)
-            // 2. Session closed while logged out, and user just logged in (hasBeenPrompted is null/false)
+            // 1. Session just closed while logged in
+            // 2. Session closed while logged out, and user just logged in
             if (!hasBeenPrompted && (wasClosedPreviously === false || wasClosedPreviously === undefined)) {
               setClosedSessionTitle(session.title || "Treatment Session");
               setActiveSpecialty(card.specialty || "General");
@@ -59,24 +58,17 @@ export const SessionMonitorProvider = ({ children }: { children: React.ReactNode
     } catch (error) {
       console.error("[SessionMonitor] Error checking session status:", error);
     }
-  }, [user]);
+  }, [user, isShareModalOpen]);
 
-  // Handle Polling Lifecycle & Auth Shifts
+  // Run only on user auth state change / initial page mount
   useEffect(() => {
     if (!user) {
-      // Reset tracker when logged out
       prevSessionsRef.current.clear();
       return;
     }
 
-    // Trigger immediate check right after login / page load
+    // Single check on mount / login
     pollSessions();
-
-    const intervalId = setInterval(() => {
-      pollSessions();
-    }, POLL_INTERVAL);
-
-    return () => clearInterval(intervalId);
   }, [user, pollSessions]);
 
   return (
