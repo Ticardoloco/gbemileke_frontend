@@ -31,7 +31,7 @@ const nav = [
   { href: "/", label: "Home" },
   { href: "/specialties", label: "Specialties" },
   { href: "/patient-card", label: "Patient Card" },
-  // { href: "/shop", label: "Herbal Store" },
+  { href: "/shop", label: "Herbal Store" },
   { href: "/healing-stories", label: "Healing Stories" },
 ];
 
@@ -95,7 +95,7 @@ export function SiteHeader() {
         {/* Right Header Actions */}
         <div className="flex items-center gap-2">
           {/* Shopping Cart */}
-          {/* <Link href="/cart" className="relative">
+          <Link href="/cart" className="relative">
             <Button variant="ghost" size="icon" aria-label="Cart">
               <ShoppingCart className="h-5 w-5" />
             </Button>
@@ -104,7 +104,7 @@ export function SiteHeader() {
                 {cartCount}
               </Badge>
             )}
-          </Link> */}
+          </Link>
 
           {/* Dynamic User Navigation */}
           {user ? (

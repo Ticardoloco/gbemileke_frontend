@@ -432,7 +432,7 @@ export default function RegisterPatientCardPage() {
                   {isSubmitting ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Redirecting to Paystack...
+                      Redirecting to Korapay...
                     </>
                   ) : (
                     `Proceed to Pay ${CARD_FEE_FORMATTED}`

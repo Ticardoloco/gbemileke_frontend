@@ -122,7 +122,7 @@ export default function Checkout() {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [country, setCountry] = useState("Nigeria");
-  const [paymentMethod] = useState("paystack");
+  const [paymentMethod] = useState("korapay");
   const [loading, setLoading] = useState(false);
 
   // Calculations
@@ -178,7 +178,7 @@ export default function Checkout() {
 
       if (authUrl) {
         clearCart();
-        toast.success("Order created! Redirecting to Paystack...");
+        toast.success("Order created! Redirecting to korapay...");
 
         // Perform full browser redirect to Paystack payment gateway
         window.location.href = authUrl;

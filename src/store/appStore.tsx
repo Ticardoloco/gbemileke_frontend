@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
-import { clearAuthSession } from "@/api/apiClient";
 import { UserProfile } from "@/services/authService";
 import { getCurrentUser } from "@/services/userService";
 
@@ -52,59 +51,55 @@ export const useApp = create<AppState>()(
       setUser: (user: UserProfile | null) => set({ user }),
 
       // Fetch User Profile directly from API and sync store
-fetchProfile: async () => {
-  set({ isLoadingProfile: true });
-  try {
-    const profile = await getCurrentUser();
-    
-    // getCurrentUser may return the user directly or an object like { user }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const user: UserProfile | null = profile && (profile as any).user 
-      ? (profile as any).user 
-      : (profile as any) || null;
+      fetchProfile: async () => {
+        set({ isLoadingProfile: true });
+        try {
+          const profile = await getCurrentUser();
 
-    set({ user, isLoadingProfile: false });
-    return user;
-  } catch (error: any) {
-    // Silently handle 401 Unauthorized (user is unauthenticated or logged out)
-    if (error?.response?.status === 401 || error?.status === 401) {
-      set({ user: null, isLoadingProfile: false });
-      return null;
-    }
+          const user: UserProfile | null =
+            profile && (profile as any).user
+              ? (profile as any).user
+              : (profile as any) || null;
 
-    // Log other unexpected errors (500, network issues, etc.)
-    console.error("Failed to fetch user profile:", error);
-    set({ isLoadingProfile: false });
-    return null;
-  }
-},
+          set({ user, isLoadingProfile: false });
+          return user;
+        } catch (error: any) {
+          if (error?.response?.status === 401 || error?.status === 401) {
+            set({ user: null, isLoadingProfile: false });
+            return null;
+          }
 
-      // Logout: Reset state & clear auth session token
+          console.error("Failed to fetch user profile:", error);
+          set({ isLoadingProfile: false });
+          return null;
+        }
+      },
+
+      // Logout: Reset store state cleanly
       logout: () => {
-        clearAuthSession();
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user_profile");
+        }
         set({ user: null, cart: [] });
       },
 
       // Cart Actions
       addToCart: (product: CartItem, quantityToAdd = 1) => {
         const { cart } = get();
-        // Support both MongoDB _id and standard id
         const targetId = product._id;
 
         if (!targetId) {
-          console.error("Cannot add item to cart without an _id or id:", product);
+          console.error("Cannot add item to cart without an _id:", product);
           return;
         }
 
-        const existingIndex = cart.findIndex(
-          (item) => item._id === targetId
-        );
+        const existingIndex = cart.findIndex((item) => item._id === targetId);
 
         if (existingIndex > -1) {
-          // ✅ Immutable update
           const updatedCart = [...cart];
           const existingItem = updatedCart[existingIndex];
-          
+
           updatedCart[existingIndex] = {
             ...existingItem,
             quantity: existingItem.quantity + (product.quantity || quantityToAdd),
@@ -112,7 +107,6 @@ fetchProfile: async () => {
 
           set({ cart: updatedCart });
         } else {
-          // ✅ Construct safe CartItem
           const newItem: CartItem = {
             ...product,
             _id: product._id || targetId,
@@ -124,8 +118,9 @@ fetchProfile: async () => {
       },
 
       removeFromCart: (id: string | undefined) => {
+        if (!id) return;
         set({
-          cart: get().cart.filter((item) => item._id !== id && item._id !== id),
+          cart: get().cart.filter((item) => item._id !== id),
         });
       },
 
@@ -135,9 +130,8 @@ fetchProfile: async () => {
           return;
         }
         set({
-          cart: get().cart.map((item) => item._id === id
-              ? { ...item, quantity: qty } // ✅ Fixed: Updates 'quantity' properly
-              : item
+          cart: get().cart.map((item) =>
+            item._id === id ? { ...item, quantity: qty } : item
           ),
         });
       },
@@ -147,6 +141,11 @@ fetchProfile: async () => {
     {
       name: "gbemileke-app-storage",
       storage: createJSONStorage(() => localStorage),
+      // Prevent stale user state from persisting if token isn't present
+      partialize: (state) => ({
+        cart: state.cart,
+        user: typeof window !== "undefined" && localStorage.getItem("token") ? state.user : null,
+      }),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
       },

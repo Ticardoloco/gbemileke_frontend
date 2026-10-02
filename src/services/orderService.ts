@@ -20,7 +20,7 @@ export interface ShippingAddress {
 }
 
 export interface PaymentInfo {
-  paymentMethod: "paystack" | "card" | "transfer" | string;
+  paymentMethod: "kora" | "card" | "transfer" | string;
   reference?: string;
   accessCode?: string;
   authorizationUrl?: string;
